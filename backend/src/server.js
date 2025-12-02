@@ -33,6 +33,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Jury API is running' });
 });
 
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Jury API is running' });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cases', casesRoutes);
