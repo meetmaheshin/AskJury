@@ -1,8 +1,11 @@
-[phases.build]
-cmd = "npm run build"
+[phases.setup]
+nixPkgs = ['nodejs_20']
 
 [phases.install]
 cmd = "npm ci"
+
+[phases.build]
+cmd = "npm run build"
 
 [start]
 cmd = "npm run start"
