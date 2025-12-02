@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  username     String    @unique
+  passwordHash String    @map("password_hash")
+  avatarUrl    String?   @map("avatar_url")
+  bio          String?
+  isVerified   Boolean   @default(false) @map("is_verified")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  cases        Case[]
+  votes        Vote[]
+  comments     Comment[]
+  reports      Report[]
+
+  @@map("users")
+}
+
+enum CaseCategory {
+  ROOMMATE_DISPUTES
+  RELATIONSHIP_ISSUES
+  WORKPLACE_CONFLICTS
+  FAMILY_DRAMA
+  FRIEND_DISAGREEMENTS
+  MONEY_PAYMENTS
+  POLITICS
+  OTHER
+}
+
+enum CaseStatus {
+  ACTIVE
+  CLOSED
+  REMOVED
+}
+
+model Case {
+  id          String       @id @default(uuid())
+  userId      String       @map("user_id")
+  title       String
+  description String       @db.Text
+  category    CaseCategory
+  mediaUrls   Json         @default("[]") @map("media_urls")
+  sideALabel  String       @default("You're Right") @map("side_a_label")
+  sideBLabel  String       @default("You're Wrong") @map("side_b_label")
+  status      CaseStatus   @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votes       Vote[]
+  comments    Comment[]
+
+  @@index([userId])
+  @@index([category])
+  @@index([createdAt])
+  @@index([status])
+  @@map("cases")
+}
+
+enum VoteSide {
+  SIDE_A
+  SIDE_B
+}
+
+model Vote {
+  id        String   @id @default(uuid())
+  caseId    String   @map("case_id")
+  userId    String   @map("user_id")
+  side      VoteSide
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([caseId, userId])
+  @@index([caseId])
+  @@index([userId])
+  @@map("votes")
+}
+
+model Comment {
+  id         String    @id @default(uuid())
+  caseId     String    @map("case_id")
+  userId     String    @map("user_id")
+  parentId   String?   @map("parent_id")
+  content    String    @db.Text
+  upvotes    Int       @default(0)
+  downvotes  Int       @default(0)
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  case       Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent     Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies    Comment[] @relation("CommentReplies")
+
+  @@index([caseId])
+  @@index([userId])
+  @@index([parentId])
+  @@map("comments")
+}
+
+enum ContentType {
+  CASE
+  COMMENT
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  ACTIONED
+}
+
+model Report {
+  id         String       @id @default(uuid())
+  reporterId String       @map("reporter_id")
+  contentType ContentType @map("content_type")
+  contentId  String       @map("content_id")
+  reason     String       @db.Text
+  status     ReportStatus @default(PENDING)
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  reporter   User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([contentType, contentId])
+  @@index([status])
+  @@map("reports")
+}

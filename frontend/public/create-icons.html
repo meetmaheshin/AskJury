@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generate PWA Icons</title>
+</head>
+<body>
+  <h2>PWA Icon Generator</h2>
+  <p>Right-click and save each icon:</p>
+  <div>
+    <h3>192x192 Icon</h3>
+    <canvas id="icon192" width="192" height="192"></canvas>
+    <br>
+    <button onclick="downloadIcon('icon192', 'icon-192.png')">Download 192x192</button>
+  </div>
+  <br>
+  <div>
+    <h3>512x512 Icon</h3>
+    <canvas id="icon512" width="512" height="512"></canvas>
+    <br>
+    <button onclick="downloadIcon('icon512', 'icon-512.png')">Download 512x512</button>
+  </div>
+
+  <script>
+    function createIcon(canvasId, size) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+
+      // Create gradient background
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#0066FF');
+      gradient.addColorStop(1, '#FF6B6B');
+
+      // Fill background
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+
+      // Draw scale icon (jury/justice symbol)
+      ctx.fillStyle = 'white';
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = size * 0.04;
+
+      // Draw scales
+      const centerX = size / 2;
+      const centerY = size / 2;
+      const scaleWidth = size * 0.25;
+      const scaleHeight = size * 0.15;
+
+      // Left scale
+      ctx.beginPath();
+      ctx.moveTo(centerX - scaleWidth, centerY);
+      ctx.lineTo(centerX - scaleWidth * 1.5, centerY + scaleHeight);
+      ctx.lineTo(centerX - scaleWidth * 0.5, centerY + scaleHeight);
+      ctx.closePath();
+      ctx.stroke();
+
+      // Right scale
+      ctx.beginPath();
+      ctx.moveTo(centerX + scaleWidth, centerY);
+      ctx.lineTo(centerX + scaleWidth * 1.5, centerY + scaleHeight);
+      ctx.lineTo(centerX + scaleWidth * 0.5, centerY + scaleHeight);
+      ctx.closePath();
+      ctx.stroke();
+
+      // Center pole
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY - scaleHeight);
+      ctx.lineTo(centerX, centerY + scaleHeight * 2);
+      ctx.lineWidth = size * 0.03;
+      ctx.stroke();
+
+      // Balance beam
+      ctx.beginPath();
+      ctx.moveTo(centerX - scaleWidth * 1.6, centerY);
+      ctx.lineTo(centerX + scaleWidth * 1.6, centerY);
+      ctx.lineWidth = size * 0.02;
+      ctx.stroke();
+    }
+
+    function downloadIcon(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    // Generate icons on load
+    createIcon('icon192', 192);
+    createIcon('icon512', 512);
+  </script>
+</body>
+</html>
