@@ -23,9 +23,7 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://askjury.com', 'https://www.askjury.com', 'http://localhost:5173']
-    : ['http://localhost:5173', 'http://localhost:3000'],
+  origin: ['https://askjury.com', 'https://www.askjury.com', 'http://localhost:5173', 'http://localhost:3000'],
   credentials: true
 }));
 app.use(express.json());
