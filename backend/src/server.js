@@ -14,6 +14,9 @@ import authRoutes from './routes/auth.js';
 import casesRoutes from './routes/cases.js';
 import commentsRoutes from './routes/comments.js';
 import usersRoutes from './routes/users.js';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -35,6 +38,71 @@ app.get('/health', (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Jury API is running' });
+});
+
+// Database debug endpoint
+app.get('/api/db-debug', async (req, res) => {
+  try {
+    // Test database connection
+    await prisma.$connect();
+    
+    // Check if tables exist
+    const tables = await prisma.$queryRaw`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `;
+    
+    // Try to count users
+    let userCount = 0;
+    try {
+      userCount = await prisma.user.count();
+    } catch (e) {
+      // Table might not exist
+    }
+    
+    res.json({
+      status: 'ok',
+      database: 'connected',
+      tables: tables,
+      tableCount: tables.length,
+      userCount: userCount,
+      databaseUrl: process.env.DATABASE_URL ? 'Set' : 'Not set'
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      database: 'failed',
+      error: error.message,
+      databaseUrl: process.env.DATABASE_URL ? 'Set' : 'Not set'
+    });
+  }
+});
+
+// Manual migration endpoint (for debugging only)
+app.post('/api/db-migrate', async (req, res) => {
+  try {
+    // Import exec for running shell commands
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+    
+    // Run migration
+    const result = await execAsync('npx prisma migrate deploy');
+    
+    res.json({
+      status: 'ok',
+      message: 'Migration completed',
+      output: result.stdout,
+      error: result.stderr || null
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Migration failed',
+      error: error.message
+    });
+  }
 });
 
 // Routes
