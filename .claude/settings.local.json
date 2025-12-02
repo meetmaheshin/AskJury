@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm init -y)",
+      "Bash(npm install:*)",
+      "Bash(npm create:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(npm exec:*)",
+      "Bash(npm run prisma:generate:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm run prisma:migrate:*)",
+      "Bash(psql:*)",
+      "Bash(where:*)",
+      "Bash(sc query:*)",
+      "Bash(\"C:\\Program Files\\PostgreSQL\\14\\bin\\psql.exe\" --version)",
+      "Bash(\"C:\\Program Files\\PostgreSQL\\15\\bin\\psql.exe\" --version)",
+      "Bash(\"C:\\Program Files\\PostgreSQL\\16\\bin\\psql.exe\" --version)",
+      "Bash(set:*)",
+      "Bash(\"C:\\Program Files\\PostgreSQL\\14\\bin\\psql.exe\" -U postgres -h localhost -p 5432 -l)",
+      "Bash(npx prisma db push:*)",
+      "Bash(npm run dev:*)",
+      "Bash(node_modules.binvite)",
+      "Bash(dir node_modules)",
+      "Bash(findstr:*)",
+      "Bash(rm:*)",
+      "Bash(PORT=3001 NODE_ENV=development node:*)",
+      "Bash(node prisma/seed.js:*)",
+      "Bash(netstat:*)",
+      "Bash(tasklist:*)",
+      "Bash(taskkill:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
