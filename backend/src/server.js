@@ -105,6 +105,32 @@ app.post('/api/db-migrate', async (req, res) => {
   }
 });
 
+// Database seeding endpoint (for debugging only)
+app.post('/api/db-seed', async (req, res) => {
+  try {
+    // Import exec for running shell commands
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+    
+    // Run seed script
+    const result = await execAsync('node prisma/seed.js');
+    
+    res.json({
+      status: 'ok',
+      message: 'Database seeded successfully',
+      output: result.stdout,
+      error: result.stderr || null
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Seeding failed',
+      error: error.message
+    });
+  }
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cases', casesRoutes);
