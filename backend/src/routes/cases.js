@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { upload } from '../middleware/upload.js';
 import { uploadToCloudinary } from '../utils/cloudinary.js';
+import { calculateVerdict, shouldAutoClose } from '../utils/verdictCalculator.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -111,6 +112,54 @@ router.get('/', [
   } catch (error) {
     console.error('Get cases error:', error);
     res.status(500).json({ error: 'Failed to fetch cases' });
+  }
+});
+
+// Get closed cases (for marquee)
+router.get('/closed', async (req, res) => {
+  try {
+    const { limit = 20, offset = 0 } = req.query;
+
+    const closedCases = await prisma.case.findMany({
+      where: { status: 'CLOSED' },
+      include: {
+        user: { select: { id: true, username: true, avatarUrl: true } },
+        _count: { select: { votes: true, comments: true } }
+      },
+      orderBy: { closedAt: 'desc' },
+      take: parseInt(limit),
+      skip: parseInt(offset)
+    });
+
+    // Add vote percentages and verdict info
+    const casesWithStats = await Promise.all(
+      closedCases.map(async (c) => {
+        const voteCounts = await prisma.vote.groupBy({
+          by: ['side'],
+          where: { caseId: c.id },
+          _count: true
+        });
+
+        const sideAVotes = voteCounts.find(v => v.side === 'SIDE_A')?._count || 0;
+        const sideBVotes = voteCounts.find(v => v.side === 'SIDE_B')?._count || 0;
+        const totalVotes = sideAVotes + sideBVotes;
+
+        return {
+          ...c,
+          sideAVotes,
+          sideBVotes,
+          totalVotes,
+          sideAPercentage: totalVotes > 0 ? Math.round((sideAVotes / totalVotes) * 100) : 50,
+          sideBPercentage: totalVotes > 0 ? Math.round((sideBVotes / totalVotes) * 100) : 50
+        };
+      })
+    );
+
+    res.json(casesWithStats);
+
+  } catch (error) {
+    console.error('Error fetching closed cases:', error);
+    res.status(500).json({ error: 'Failed to fetch closed cases' });
   }
 });
 
@@ -278,6 +327,11 @@ router.post('/:id/vote', authenticate, [
       return res.status(404).json({ error: 'Case not found' });
     }
 
+    // Check if case is closed
+    if (caseItem.status === 'CLOSED') {
+      return res.status(400).json({ error: 'Cannot vote on a closed case' });
+    }
+
     // Check if user already voted
     const existingVote = await prisma.vote.findUnique({
       where: {
@@ -319,10 +373,133 @@ router.post('/:id/vote', authenticate, [
       }
     });
 
+    // Check if case should auto-close after this vote
+    const voteCounts = await prisma.vote.groupBy({
+      by: ['side'],
+      where: { caseId: id },
+      _count: true
+    });
+
+    const sideAVotes = voteCounts.find(v => v.side === 'SIDE_A')?._count || 0;
+    const sideBVotes = voteCounts.find(v => v.side === 'SIDE_B')?._count || 0;
+
+    const autoCloseCheck = shouldAutoClose(caseItem, sideAVotes, sideBVotes);
+
+    if (autoCloseCheck && autoCloseCheck.shouldClose && caseItem.status === 'ACTIVE') {
+      // Calculate verdict
+      const { verdict, margin, ownerReward } = calculateVerdict(sideAVotes, sideBVotes);
+
+      // Close the case
+      await prisma.case.update({
+        where: { id },
+        data: {
+          status: 'CLOSED',
+          closedAt: new Date(),
+          closureType: autoCloseCheck.closureType,
+          verdict,
+          verdictMargin: margin,
+          ownerReward
+        }
+      });
+
+      // Update owner earnings
+      if (ownerReward > 0) {
+        await prisma.user.update({
+          where: { id: caseItem.userId },
+          data: {
+            caseEarnings: { increment: ownerReward },
+            totalEarnings: { increment: ownerReward }
+          }
+        });
+      }
+
+      return res.status(201).json({
+        vote,
+        caseClosed: true,
+        verdict,
+        message: 'Vote recorded and case automatically closed'
+      });
+    }
+
     res.status(201).json({ vote });
   } catch (error) {
     console.error('Vote error:', error);
     res.status(500).json({ error: 'Failed to vote' });
+  }
+});
+
+// Close a case manually (owner only)
+router.post('/:id/close', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Get case and verify ownership
+    const caseItem = await prisma.case.findUnique({
+      where: { id },
+      include: { user: true }
+    });
+
+    if (!caseItem) {
+      return res.status(404).json({ error: 'Case not found' });
+    }
+
+    if (caseItem.userId !== userId) {
+      return res.status(403).json({ error: 'Only case owner can close the case' });
+    }
+
+    if (caseItem.status === 'CLOSED') {
+      return res.status(400).json({ error: 'Case is already closed' });
+    }
+
+    // Get vote counts
+    const voteCounts = await prisma.vote.groupBy({
+      by: ['side'],
+      where: { caseId: id },
+      _count: true
+    });
+
+    const sideAVotes = voteCounts.find(v => v.side === 'SIDE_A')?._count || 0;
+    const sideBVotes = voteCounts.find(v => v.side === 'SIDE_B')?._count || 0;
+
+    // Calculate verdict and rewards
+    const { verdict, margin, ownerReward } = calculateVerdict(sideAVotes, sideBVotes);
+
+    // Update case
+    const updatedCase = await prisma.case.update({
+      where: { id },
+      data: {
+        status: 'CLOSED',
+        closedAt: new Date(),
+        closureType: 'MANUAL_OWNER',
+        verdict,
+        verdictMargin: margin,
+        ownerReward
+      }
+    });
+
+    // Update user earnings if reward > 0
+    if (ownerReward > 0) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          caseEarnings: { increment: ownerReward },
+          totalEarnings: { increment: ownerReward }
+        }
+      });
+    }
+
+    res.json({
+      message: 'Case closed successfully',
+      case: updatedCase,
+      verdict,
+      margin,
+      ownerReward
+    });
+
+  } catch (error) {
+    console.error('Error closing case:', error);
+    res.status(500).json({ error: 'Failed to close case' });
   }
 });
 

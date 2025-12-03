@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { calculateVerdict } from '../src/utils/verdictCalculator.js';
 
 const prisma = new PrismaClient();
 
@@ -707,6 +708,59 @@ What should I do? Report him or mind my own business?`,
   }
 
   console.log('💬 Created comments:', comments.length);
+
+  // Close 12 cases with verdicts for marquee display
+  console.log('\n🏛️ Closing cases with verdicts...');
+
+  const casesToClose = createdCases.slice(0, 12); // First 12 political cases
+  let closedCount = 0;
+
+  for (const caseItem of casesToClose) {
+    // Get vote counts for this case
+    const voteCounts = await prisma.vote.groupBy({
+      by: ['side'],
+      where: { caseId: caseItem.id },
+      _count: true
+    });
+
+    const sideAVotes = voteCounts.find(v => v.side === 'SIDE_A')?._count || 0;
+    const sideBVotes = voteCounts.find(v => v.side === 'SIDE_B')?._count || 0;
+
+    // Calculate verdict and rewards
+    const { verdict, margin, ownerReward } = calculateVerdict(sideAVotes, sideBVotes);
+
+    // Vary closure dates over last 30 days
+    const daysAgo = Math.floor(Math.random() * 30);
+    const closedAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+
+    // Close the case
+    await prisma.case.update({
+      where: { id: caseItem.id },
+      data: {
+        status: 'CLOSED',
+        closedAt,
+        closureType: Math.random() > 0.7 ? 'MANUAL_OWNER' : 'AUTO_VOTE_THRESHOLD',
+        verdict,
+        verdictMargin: margin,
+        ownerReward
+      }
+    });
+
+    // Update owner's earnings if they won
+    if (ownerReward > 0) {
+      await prisma.user.update({
+        where: { id: caseItem.userId },
+        data: {
+          caseEarnings: { increment: ownerReward },
+          totalEarnings: { increment: ownerReward }
+        }
+      });
+    }
+
+    closedCount++;
+  }
+
+  console.log(`🏛️ Closed ${closedCount} cases with verdicts`);
   console.log('\n✅ Seed completed successfully! 🎉');
   console.log('\n📝 Demo accounts (password: password123):');
   console.log('   • rahul@example.com (RahulVerma)');

@@ -200,15 +200,52 @@ const Profile = () => {
         {/* Earnings & Stats Card */}
         {stats && (
           <div className="bg-gradient-to-br from-warning/10 to-yellow-900/20 rounded-xl shadow-md p-6 mb-8 border border-warning/30">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-white flex items-center">
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-white flex items-center mb-4">
                 <svg className="w-6 h-6 mr-2 text-warning" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
                 </svg>
-                Jury Earnings
+                Earnings Breakdown
               </h3>
-              <div className="text-3xl font-bold text-warning">${stats.earnings}</div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                  <p className="text-sm text-gray-400 mb-1">Comment Earnings</p>
+                  <p className="text-2xl font-bold text-green-400">${stats.commentEarnings || stats.earnings || '0.00'}</p>
+                  <p className="text-xs text-gray-500 mt-1">From upvoted comments</p>
+                </div>
+
+                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                  <p className="text-sm text-gray-400 mb-1">Case Earnings</p>
+                  <p className="text-2xl font-bold text-blue-400">${stats.caseEarnings || '0.00'}</p>
+                  <p className="text-xs text-gray-500 mt-1">From winning cases</p>
+                </div>
+
+                <div className="bg-gray-800 rounded-lg p-4 border border-warning/30">
+                  <p className="text-sm text-gray-400 mb-1">Total Earnings</p>
+                  <p className="text-3xl font-bold text-warning">${stats.totalEarnings || stats.earnings || '0.00'}</p>
+                  <p className="text-xs text-gray-500 mt-1">All-time total</p>
+                </div>
+              </div>
+
+              {/* Verdict Stats */}
+              {(stats.casesWon !== undefined || stats.casesLost !== undefined) && (
+                <div className="mt-6 grid grid-cols-3 gap-4">
+                  <div className="text-center bg-gray-800 rounded-lg p-3 border border-gray-700">
+                    <p className="text-3xl font-bold text-green-400">{stats.casesWon || 0}</p>
+                    <p className="text-sm text-gray-400 mt-1">Cases Won</p>
+                  </div>
+                  <div className="text-center bg-gray-800 rounded-lg p-3 border border-gray-700">
+                    <p className="text-3xl font-bold text-red-400">{stats.casesLost || 0}</p>
+                    <p className="text-sm text-gray-400 mt-1">Cases Lost</p>
+                  </div>
+                  <div className="text-center bg-gray-800 rounded-lg p-3 border border-gray-700">
+                    <p className="text-3xl font-bold text-yellow-400">{stats.casesTied || 0}</p>
+                    <p className="text-sm text-gray-400 mt-1">Cases Tied</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">

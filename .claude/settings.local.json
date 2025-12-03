@@ -27,7 +27,17 @@
       "Bash(node prisma/seed.js:*)",
       "Bash(netstat:*)",
       "Bash(tasklist:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm run build:*)",
+      "Bash(node check-backend.js:*)",
+      "Bash(dir:*)",
+      "Bash(npx prisma migrate dev --name add_case_closure_system)",
+      "Bash(npm start)",
+      "Bash(curl:*)",
+      "Bash(npx prisma migrate:*)"
     ],
     "deny": [],
     "ask": []

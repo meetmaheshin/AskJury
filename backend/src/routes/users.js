@@ -254,16 +254,34 @@ router.get('/:id/stats', async (req, res) => {
 
     const totalUpvotes = user.comments.reduce((sum, comment) => sum + comment.upvotes, 0);
     const totalDownvotes = user.comments.reduce((sum, comment) => sum + comment.downvotes, 0);
-    const earnings = (totalUpvotes / 1000).toFixed(2);
+    const commentEarnings = (totalUpvotes / 1000).toFixed(2);
+    const caseEarnings = user.caseEarnings ? parseFloat(user.caseEarnings).toFixed(2) : '0.00';
+    const totalEarnings = user.totalEarnings ? parseFloat(user.totalEarnings).toFixed(2) : '0.00';
+
+    // Get verdict stats
+    const casesWon = await prisma.case.count({
+      where: { userId: user.id, verdict: 'SIDE_A_WINS' }
+    });
+    const casesLost = await prisma.case.count({
+      where: { userId: user.id, verdict: 'SIDE_B_WINS' }
+    });
+    const casesTied = await prisma.case.count({
+      where: { userId: user.id, verdict: 'TIED' }
+    });
 
     res.json({
       stats: {
         totalUpvotes,
         totalDownvotes,
-        earnings,
+        commentEarnings,
+        caseEarnings,
+        totalEarnings,
         commentCount: user._count.comments,
         voteCount: user._count.votes,
-        caseCount: user._count.cases
+        caseCount: user._count.cases,
+        casesWon,
+        casesLost,
+        casesTied
       }
     });
   } catch (error) {

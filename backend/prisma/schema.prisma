@@ -8,15 +8,17 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  username     String    @unique
-  passwordHash String    @map("password_hash")
-  avatarUrl    String?   @map("avatar_url")
-  bio          String?
-  isVerified   Boolean   @default(false) @map("is_verified")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String    @unique
+  passwordHash  String    @map("password_hash")
+  avatarUrl     String?   @map("avatar_url")
+  bio           String?
+  isVerified    Boolean   @default(false) @map("is_verified")
+  caseEarnings  Decimal   @default(0) @map("case_earnings") @db.Decimal(10, 2)
+  totalEarnings Decimal   @default(0) @map("total_earnings") @db.Decimal(10, 2)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   cases        Case[]
   votes        Vote[]
@@ -43,18 +45,35 @@ enum CaseStatus {
   REMOVED
 }
 
+enum Verdict {
+  SIDE_A_WINS
+  SIDE_B_WINS
+  TIED
+}
+
+enum ClosureType {
+  AUTO_TIME_LIMIT
+  AUTO_VOTE_THRESHOLD
+  MANUAL_OWNER
+}
+
 model Case {
-  id          String       @id @default(uuid())
-  userId      String       @map("user_id")
-  title       String
-  description String       @db.Text
-  category    CaseCategory
-  mediaUrls   Json         @default("[]") @map("media_urls")
-  sideALabel  String       @default("You're Right") @map("side_a_label")
-  sideBLabel  String       @default("You're Wrong") @map("side_b_label")
-  status      CaseStatus   @default(ACTIVE)
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
+  id             String       @id @default(uuid())
+  userId         String       @map("user_id")
+  title          String
+  description    String       @db.Text
+  category       CaseCategory
+  mediaUrls      Json         @default("[]") @map("media_urls")
+  sideALabel     String       @default("You're Right") @map("side_a_label")
+  sideBLabel     String       @default("You're Wrong") @map("side_b_label")
+  status         CaseStatus   @default(ACTIVE)
+  closedAt       DateTime?    @map("closed_at")
+  closureType    ClosureType? @map("closure_type")
+  verdict        Verdict?
+  verdictMargin  Int?         @map("verdict_margin")
+  ownerReward    Decimal      @default(0) @map("owner_reward") @db.Decimal(10, 2)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   votes       Vote[]
@@ -64,6 +83,7 @@ model Case {
   @@index([category])
   @@index([createdAt])
   @@index([status])
+  @@index([closedAt])
   @@map("cases")
 }
 

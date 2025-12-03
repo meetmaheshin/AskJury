@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import CommentSection from '../components/CommentSection';
+import VerdictBadge from '../components/VerdictBadge';
+import CloseCaseButton from '../components/CloseCaseButton';
 
 const CaseDetail = () => {
   const { id } = useParams();
@@ -37,9 +39,21 @@ const CaseDetail = () => {
       return;
     }
 
+    // Check if case is closed
+    if (caseData?.status === 'CLOSED') {
+      alert('This case is closed. No more voting allowed.');
+      return;
+    }
+
     setVoting(true);
     try {
-      await api.post(`/cases/${id}/vote`, { side });
+      const response = await api.post(`/cases/${id}/vote`, { side });
+
+      // Check if case was auto-closed
+      if (response.data.caseClosed) {
+        alert(`Vote recorded! Case automatically closed.\nVerdict: ${response.data.verdict}`);
+      }
+
       await fetchCase(); // Refresh case data
     } catch (err) {
       console.error('Error voting:', err);
@@ -105,6 +119,8 @@ const CaseDetail = () => {
 
   // Check if vote is controversial (close to 50/50)
   const isControversial = Math.abs((caseData.sideAPercentage || 50) - 50) <= 15;
+  const isClosed = caseData.status === 'CLOSED';
+  const isOwner = user?.id === caseData.userId;
 
   return (
     <div className="min-h-screen bg-black py-6">
@@ -119,6 +135,34 @@ const CaseDetail = () => {
           </svg>
           Back
         </button>
+
+        {/* Verdict Badge */}
+        {isClosed && caseData.verdict && (
+          <div className="mb-6 flex justify-center">
+            <VerdictBadge verdict={caseData.verdict} margin={caseData.verdictMargin} isOwner={isOwner} />
+          </div>
+        )}
+
+        {/* Case Closed Banner */}
+        {isClosed && (
+          <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 mb-6 text-center">
+            <p className="text-gray-400">
+              🔒 This case was closed on {new Date(caseData.closedAt).toLocaleDateString()}
+            </p>
+            {caseData.ownerReward > 0 && isOwner && (
+              <p className="text-green-400 font-bold mt-2">
+                You earned ${caseData.ownerReward} from this case!
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Close Case Button (for owners on active cases) */}
+        {!isClosed && isOwner && (
+          <div className="mb-6 flex justify-center">
+            <CloseCaseButton caseId={id} onClose={() => window.location.reload()} />
+          </div>
+        )}
 
         {/* Two Column Layout: Case on Left, Comments on Right */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -236,7 +280,7 @@ const CaseDetail = () => {
                 <div className="flex gap-3 mb-6">
                   <button
                     onClick={() => handleVote('SIDE_A')}
-                    disabled={voting}
+                    disabled={voting || isClosed}
                     className={`flex-1 py-4 px-4 rounded-xl font-black text-base transition-all shadow-md hover:shadow-lg transform hover:scale-105 ${
                       caseData.userVote === 'SIDE_A'
                         ? 'bg-gradient-to-br from-green-600 to-green-700 text-white ring-4 ring-green-300'
@@ -247,7 +291,7 @@ const CaseDetail = () => {
                   </button>
                   <button
                     onClick={() => handleVote('SIDE_B')}
-                    disabled={voting}
+                    disabled={voting || isClosed}
                     className={`flex-1 py-4 px-4 rounded-xl font-black text-base transition-all shadow-md hover:shadow-lg transform hover:scale-105 ${
                       caseData.userVote === 'SIDE_B'
                         ? 'bg-gradient-to-br from-red-600 to-red-700 text-white ring-4 ring-red-300'
@@ -299,7 +343,7 @@ const CaseDetail = () => {
                 </svg>
                 Discussion ({caseData._count?.comments || 0})
               </h2>
-              <CommentSection caseId={id} isOP={user?.id === caseData.userId} />
+              <CommentSection caseId={id} isOP={user?.id === caseData.userId} disabled={isClosed} />
             </div>
           </div>
         </div>

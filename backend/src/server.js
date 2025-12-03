@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import cron from 'node-cron';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +16,7 @@ import casesRoutes from './routes/cases.js';
 import commentsRoutes from './routes/comments.js';
 import usersRoutes from './routes/users.js';
 import { PrismaClient } from '@prisma/client';
+import { autoCloseCases } from './jobs/autoCloseCases.js';
 
 const prisma = new PrismaClient();
 
@@ -152,4 +154,14 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Cloudinary configured: ${process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'your-cloudinary-name' ? 'Yes ✓' : 'No ✗'}`);
+
+  // Schedule auto-close job to run every hour
+  cron.schedule('0 * * * *', () => {
+    console.log('[CRON] Running auto-closure job');
+    autoCloseCases();
+  });
+
+  // Run auto-closure check once on startup
+  console.log('[CRON] Running initial auto-closure check');
+  autoCloseCases();
 });

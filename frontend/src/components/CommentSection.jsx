@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 
-const CommentSection = ({ caseId, isOP }) => {
+const CommentSection = ({ caseId, isOP, disabled = false }) => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [comments, setComments] = useState([]);
@@ -150,14 +150,16 @@ const CommentSection = ({ caseId, isOP }) => {
           <div className="flex items-center space-x-4 text-sm">
             <button
               onClick={() => handleUpvote(comment.id)}
-              className="flex items-center space-x-1 text-gray-400 hover:text-green-500"
+              disabled={disabled}
+              className={`flex items-center space-x-1 text-gray-400 ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:text-green-500'}`}
             >
               <span>↑</span>
               <span>{comment.upvotes}</span>
             </button>
             <button
               onClick={() => handleDownvote(comment.id)}
-              className="flex items-center space-x-1 text-gray-400 hover:text-red-500"
+              disabled={disabled}
+              className={`flex items-center space-x-1 text-gray-400 ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:text-red-500'}`}
             >
               <span>↓</span>
               <span>{comment.downvotes}</span>
@@ -165,7 +167,8 @@ const CommentSection = ({ caseId, isOP }) => {
             {!isReply && (
               <button
                 onClick={() => setReplyingTo(comment.id)}
-                className="text-gray-400 hover:text-primary"
+                disabled={disabled}
+                className={`text-gray-400 ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:text-primary'}`}
               >
                 Reply
               </button>
@@ -219,7 +222,13 @@ const CommentSection = ({ caseId, isOP }) => {
     <div className="bg-gray-900 rounded-lg shadow-md p-6 border border-gray-800">
       <h2 className="text-2xl font-bold mb-6 text-white">Comments ({comments.length})</h2>
 
-      {isAuthenticated ? (
+      {disabled ? (
+        <div className="mb-8 p-4 bg-gray-800 rounded-lg text-center border border-gray-700">
+          <p className="text-gray-400">
+            🔒 This case is closed. Comments and voting are disabled.
+          </p>
+        </div>
+      ) : isAuthenticated ? (
         <form onSubmit={handleSubmitComment} className="mb-8">
           <textarea
             value={newComment}

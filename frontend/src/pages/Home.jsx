@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import CaseCard from '../components/CaseCard';
+import { HomePageSEO } from '../components/SEO';
+import TrendingMarquee from '../components/TrendingMarquee';
 
 const Home = () => {
   const { isAuthenticated } = useAuth();
@@ -12,7 +14,8 @@ const Home = () => {
   const [activeTab, setActiveTab] = useState('hot');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [leaderboard, setLeaderboard] = useState([]);
-  const [trending, setTrending] = useState([]);
+  const [closedCases, setClosedCases] = useState([]); // For marquee
+  const [trending, setTrending] = useState([]); // For sidebar
 
   const categories = [
     { value: '', label: 'All Drama', emoji: '🔥' },
@@ -32,7 +35,8 @@ const Home = () => {
 
   useEffect(() => {
     fetchLeaderboard();
-    fetchTrending();
+    fetchClosedCases(); // For marquee
+    fetchTrending(); // For sidebar
   }, []);
 
   const fetchCases = async () => {
@@ -62,6 +66,15 @@ const Home = () => {
     }
   };
 
+  const fetchClosedCases = async () => {
+    try {
+      const response = await api.get('/cases/closed?limit=20');
+      setClosedCases(response.data);
+    } catch (err) {
+      console.error('Error fetching closed cases:', err);
+    }
+  };
+
   const fetchTrending = async () => {
     try {
       const response = await api.get('/cases/trending/top?limit=5');
@@ -73,6 +86,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-black">
+      <HomePageSEO />
       {/* Hero Section - Hidden on mobile PWA, visible on desktop */}
       <div className="hidden md:block relative overflow-hidden bg-black border-b border-gray-800/50">
         {/* Subtle gradient background */}
@@ -136,6 +150,11 @@ const Home = () => {
           </div>
         </div>
       </div>
+
+      {/* Closed Cases Marquee - Shows recent verdicts */}
+      {closedCases.length > 0 && (
+        <TrendingMarquee cases={closedCases} />
+      )}
 
       <div id="cases-section" className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
