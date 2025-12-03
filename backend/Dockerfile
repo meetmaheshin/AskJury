@@ -19,11 +19,11 @@ RUN npm install --production
 # Copy rest of source code
 COPY . .
 
-# Run database migrations
-RUN npx prisma migrate deploy
+# Make start script executable
+RUN chmod +x start.sh
 
 # Expose port
 EXPOSE 3001
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application (migrations will run in start.sh)
+CMD ["./start.sh"]
