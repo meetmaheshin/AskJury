@@ -37,7 +37,9 @@
       "Bash(npx prisma migrate dev --name add_case_closure_system)",
       "Bash(npm start)",
       "Bash(curl:*)",
-      "Bash(npx prisma migrate:*)"
+      "Bash(npx prisma migrate:*)",
+      "Bash(cat:*)",
+      "Bash(timeout 2 curl:*)"
     ],
     "deny": [],
     "ask": []
