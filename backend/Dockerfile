@@ -14,7 +14,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies (this will run prisma generate via postinstall)
-RUN npm ci --only=production
+RUN npm install --production
 
 # Copy rest of source code
 COPY . .
