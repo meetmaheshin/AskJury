@@ -19,6 +19,9 @@ RUN npm install --production
 # Copy rest of source code
 COPY . .
 
+# Run database migrations
+RUN npx prisma migrate deploy
+
 # Expose port
 EXPOSE 3001
 
