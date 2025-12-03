@@ -32,41 +32,74 @@ router.get('/', [
       where.category = category;
     }
 
-    let orderBy;
-    if (sort === 'new') {
-      orderBy = { createdAt: 'desc' };
-    } else if (sort === 'hot') {
-      // For MVP, use created date as proxy for hot
-      // In future, calculate based on votes in last 24h
-      orderBy = { createdAt: 'desc' };
-    } else if (sort === 'top') {
-      // For MVP, order by vote count
-      orderBy = { createdAt: 'desc' };
-    }
+    // Fetch cases based on sort type
+    let cases;
 
-    const cases = await prisma.case.findMany({
-      where,
-      orderBy,
-      take: parseInt(limit),
-      skip: parseInt(offset),
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            avatarUrl: true
-          }
-        },
-        _count: {
-          select: {
-            votes: true,
-            comments: true
+    if (sort === 'new') {
+      // Sort by most recent
+      cases = await prisma.case.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: parseInt(limit),
+        skip: parseInt(offset),
+        include: {
+          user: {
+            select: { id: true, username: true, avatarUrl: true }
+          },
+          _count: {
+            select: { votes: true, comments: true }
           }
         }
-      }
-    });
+      });
+    } else if (sort === 'hot' || sort === 'top') {
+      // For hot and top, we need to calculate engagement score
+      // Fetch more cases and then sort by engagement
+      const allCases = await prisma.case.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: parseInt(limit) * 3, // Fetch more to sort properly
+        include: {
+          user: {
+            select: { id: true, username: true, avatarUrl: true }
+          },
+          _count: {
+            select: { votes: true, comments: true }
+          }
+        }
+      });
 
-    // Calculate vote percentages
+      // Calculate engagement scores
+      const casesWithScores = await Promise.all(
+        allCases.map(async (caseItem) => {
+          const voteCounts = await prisma.vote.groupBy({
+            by: ['side'],
+            where: { caseId: caseItem.id },
+            _count: true
+          });
+
+          const sideAVotes = voteCounts.find(v => v.side === 'SIDE_A')?._count || 0;
+          const sideBVotes = voteCounts.find(v => v.side === 'SIDE_B')?._count || 0;
+          const totalVotes = sideAVotes + sideBVotes;
+
+          // Hot score: votes + comments, weighted by recency (last 7 days)
+          const daysSinceCreation = (Date.now() - new Date(caseItem.createdAt)) / (1000 * 60 * 60 * 24);
+          const recencyMultiplier = Math.max(0, 1 - (daysSinceCreation / 7));
+          const hotScore = (totalVotes * 2 + caseItem._count.comments) * (sort === 'hot' ? recencyMultiplier : 1);
+
+          return {
+            ...caseItem,
+            totalVotes,
+            hotScore
+          };
+        })
+      );
+
+      // Sort by engagement and take requested limit
+      casesWithScores.sort((a, b) => b.hotScore - a.hotScore);
+      cases = casesWithScores.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    }
+
+    // Calculate vote percentages for final cases
     const casesWithVotes = await Promise.all(
       cases.map(async (caseItem) => {
         const voteCounts = await prisma.vote.groupBy({
