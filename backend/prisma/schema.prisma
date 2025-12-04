@@ -11,10 +11,16 @@ model User {
   id            String    @id @default(uuid())
   email         String    @unique
   username      String    @unique
-  passwordHash  String    @map("password_hash")
+  passwordHash  String?   @map("password_hash") // Optional for OAuth users
   avatarUrl     String?   @map("avatar_url")
   bio           String?
   isVerified    Boolean   @default(false) @map("is_verified")
+
+  // OAuth fields
+  googleId      String?   @unique @map("google_id")
+  githubId      String?   @unique @map("github_id")
+  authProvider  String?   @map("auth_provider") // 'local', 'google', 'github'
+
   caseEarnings  Decimal   @default(0) @map("case_earnings") @db.Decimal(10, 2)
   totalEarnings Decimal   @default(0) @map("total_earnings") @db.Decimal(10, 2)
   createdAt     DateTime  @default(now()) @map("created_at")

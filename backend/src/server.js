@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cron from 'node-cron';
+import session from 'express-session';
+import passport from './config/passport.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +17,7 @@ import authRoutes from './routes/auth.js';
 import casesRoutes from './routes/cases.js';
 import commentsRoutes from './routes/comments.js';
 import usersRoutes from './routes/users.js';
+import oauthRoutes from './routes/oauth.js';
 import { PrismaClient } from '@prisma/client';
 import { autoCloseCases } from './jobs/autoCloseCases.js';
 
@@ -30,6 +33,22 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Session middleware for Passport
+app.use(session({
+  secret: process.env.JWT_SECRET || 'fallback-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Health check
 app.get('/health', (req, res) => {
@@ -133,6 +152,7 @@ app.post('/api/db-seed', async (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', oauthRoutes); // OAuth routes under /api/auth
 app.use('/api/cases', casesRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/users', usersRoutes);
