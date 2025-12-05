@@ -28,12 +28,40 @@ const Login = () => {
     if (token && userId && username) {
       // Store authentication data
       localStorage.setItem('token', token);
-      localStorage.setItem('userId', userId);
-      localStorage.setItem('username', username);
 
-      // Redirect to home
-      navigate('/');
-      window.location.reload(); // Reload to update auth context
+      // Fetch full user data
+      const fetchUserData = async () => {
+        try {
+          const response = await fetch(`${API_URL}/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('user', JSON.stringify(data.user));
+            // Redirect to home
+            navigate('/');
+            window.location.reload(); // Reload to update auth context
+          } else {
+            // Fallback: create minimal user object
+            const minimalUser = { id: userId, username, email: '' };
+            localStorage.setItem('user', JSON.stringify(minimalUser));
+            navigate('/');
+            window.location.reload();
+          }
+        } catch (error) {
+          console.error('Failed to fetch user data:', error);
+          // Fallback: create minimal user object
+          const minimalUser = { id: userId, username, email: '' };
+          localStorage.setItem('user', JSON.stringify(minimalUser));
+          navigate('/');
+          window.location.reload();
+        }
+      };
+
+      fetchUserData();
     }
   }, [searchParams, navigate]);
 
