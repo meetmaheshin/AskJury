@@ -5,7 +5,7 @@ echo "🚀 Starting AskJury Backend Server..."
 
 # Run database migrations first
 echo "📦 Running database migrations..."
-npx prisma migrate deploy
+npx prisma db push --accept-data-loss
 
 # Check if migrations succeeded
 if [ $? -eq 0 ]; then
