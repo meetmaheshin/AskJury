@@ -55,3 +55,4 @@ backend/src/jobs/userGeneratorBot.js
 backend/src/jobs/botActivityManager.js
 backend/src/routes/bots.js
 backend/README-BOTS.md
+PRIVATE-BOT-SYSTEM.md
