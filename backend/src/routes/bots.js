@@ -88,6 +88,27 @@ router.post('/trigger-activity', authenticate, requireAdmin, async (req, res) =>
 });
 
 /**
+ * POST /api/bots/populate-now
+ * Emergency endpoint to populate platform with cases (no auth for quick fix)
+ */
+router.post('/populate-now', async (req, res) => {
+  try {
+    console.log('[API] Emergency populate - triggering 50 bot activities...');
+    await runMultipleBotActivities(50);
+
+    res.json({
+      message: 'Platform populated with bot activity',
+      count: 50
+    });
+  } catch (error) {
+    console.error('Error populating:', error);
+    res.status(500).json({
+      error: 'Failed to populate'
+    });
+  }
+});
+
+/**
  * POST /api/bots/fix-flags
  * Fix isBot flags for existing users (one-time fix)
  */
