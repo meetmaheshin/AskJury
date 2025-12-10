@@ -2,8 +2,10 @@ import express from 'express';
 import { generateBotUsers, getBotStats } from '../jobs/userGeneratorBot.js';
 import { runMultipleBotActivities } from '../jobs/botActivityManager.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
+import { PrismaClient } from '@prisma/client';
 
 const router = express.Router();
+const prisma = new PrismaClient();
 
 /**
  * POST /api/bots/generate
@@ -81,6 +83,52 @@ router.post('/trigger-activity', authenticate, requireAdmin, async (req, res) =>
     console.error('Error triggering bot activity:', error);
     res.status(500).json({
       error: 'Failed to trigger bot activity'
+    });
+  }
+});
+
+/**
+ * POST /api/bots/fix-flags
+ * Fix isBot flags for existing users (one-time fix)
+ */
+router.post('/fix-flags', async (req, res) => {
+  try {
+    const botUsernames = [
+      'SnehaPatel', 'KaranMehta', 'AnanyaRao', 'VikramSingh', 'RahulVerma',
+      'PriyaSharma', 'AmitKumar', 'ArjunReddy', 'DeepikaNair', 'MeeraJoshi'
+    ];
+
+    const result = await prisma.user.updateMany({
+      where: {
+        username: {
+          in: botUsernames
+        }
+      },
+      data: {
+        isBot: true
+      }
+    });
+
+    // Also make meet.maheshin admin
+    await prisma.user.update({
+      where: { email: 'meet.maheshin@gmail.com' },
+      data: { isAdmin: true }
+    });
+
+    const bots = await prisma.user.findMany({
+      where: { isBot: true },
+      select: { username: true }
+    });
+
+    res.json({
+      message: 'Fixed bot flags',
+      updated: result.count,
+      bots: bots.map(b => b.username)
+    });
+  } catch (error) {
+    console.error('Error fixing bot flags:', error);
+    res.status(500).json({
+      error: 'Failed to fix bot flags'
     });
   }
 });
