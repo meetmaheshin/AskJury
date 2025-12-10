@@ -18,11 +18,11 @@ import casesRoutes from './routes/cases.js';
 import commentsRoutes from './routes/comments.js';
 import usersRoutes from './routes/users.js';
 import oauthRoutes from './routes/oauth.js';
-// import botsRoutes from './routes/bots.js';
+import botsRoutes from './routes/bots.js';
 import { PrismaClient } from '@prisma/client';
 import { autoCloseCases } from './jobs/autoCloseCases.js';
-// import { generateBotUsers } from './jobs/userGeneratorBot.js';
-// import { runMultipleBotActivities } from './jobs/botActivityManager.js';
+import { generateBotUsers } from './jobs/userGeneratorBot.js';
+import { runMultipleBotActivities } from './jobs/botActivityManager.js';
 
 const prisma = new PrismaClient();
 
@@ -159,7 +159,7 @@ app.use('/api/auth', oauthRoutes); // OAuth routes under /api/auth
 app.use('/api/cases', casesRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/users', usersRoutes);
-// app.use('/api/bots', botsRoutes);
+app.use('/api/bots', botsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -186,20 +186,20 @@ app.listen(PORT, () => {
   });
 
   // Schedule bot user generation - spread throughout the day
-  // Creates 1-2 users at random times (every 3 hours)
-  // cron.schedule('0 */3 * * *', async () => {
-  //   console.log('[CRON] Creating new bot users');
-  //   const count = Math.floor(Math.random() * 2) + 1; // 1-2 users
-  //   await generateBotUsers(count);
-  // });
+  // Creates 1-2 users every 6 hours for gradual growth
+  cron.schedule('0 */6 * * *', async () => {
+    console.log('[CRON] Creating new bot users');
+    const count = Math.floor(Math.random() * 2) + 1; // 1-2 users
+    await generateBotUsers(count);
+  });
 
-  // Schedule bot activity - every 30 minutes for organic feel
+  // Schedule bot activity - every 15 minutes for active feel
   // Bots post cases, vote, and comment throughout the day
-  // cron.schedule('*/30 * * * *', async () => {
-  //   console.log('[CRON] Running bot activity');
-  //   const activityCount = Math.floor(Math.random() * 3) + 2; // 2-4 activities
-  //   await runMultipleBotActivities(activityCount);
-  // });
+  cron.schedule('*/15 * * * *', async () => {
+    console.log('[CRON] Running bot activity');
+    const activityCount = Math.floor(Math.random() * 4) + 3; // 3-6 activities
+    await runMultipleBotActivities(activityCount);
+  });
 
   // Run auto-closure check once on startup
   console.log('[CRON] Running initial auto-closure check');
