@@ -21,6 +21,12 @@ model User {
   githubId      String?   @unique @map("github_id")
   authProvider  String?   @map("auth_provider") // 'local', 'google', 'github'
 
+  // Bot fields
+  isBot         Boolean   @default(false) @map("is_bot")
+
+  // Admin fields
+  isAdmin       Boolean   @default(false) @map("is_admin")
+
   caseEarnings  Decimal   @default(0) @map("case_earnings") @db.Decimal(10, 2)
   totalEarnings Decimal   @default(0) @map("total_earnings") @db.Decimal(10, 2)
   createdAt     DateTime  @default(now()) @map("created_at")
