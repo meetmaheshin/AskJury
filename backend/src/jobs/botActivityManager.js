@@ -69,6 +69,18 @@ const caseTemplates = [
       { title: 'Friend wants to use my discount without buying anything', description: 'I get a 30% employee discount at a store. My friend wants me to buy stuff for them using my discount even though I\'m not buying anything. The store prohibits this. They\'re calling me selfish.' },
       { title: 'Sibling expects me to pay for family gifts', description: 'Every birthday and holiday, my sibling suggests we go in together on gifts for family. But they never have money and I end up paying 80%. They still sign the card as "from both of us." Is this fair?' }
     ]
+  },
+  {
+    category: 'OTHER',
+    templates: [
+      // International/Global cases
+      { title: 'Neighbor plays loud music at 2 AM every night', description: 'My upstairs neighbor blasts music until 2-3 AM on weekdays. I have to wake up at 6 AM for work. I\'ve asked them politely twice, but they say I\'m being too sensitive and "it\'s not that loud." Should I call the landlord?' },
+      { title: 'Friend borrowed €500 six months ago, still hasn\'t paid back', description: 'I lent my close friend €500 for an emergency six months ago. They promised to pay back in 2 months. Now they avoid the topic and act like nothing happened. Should I bring it up again or let it go?' },
+      { title: 'Restaurant charged me for meal I didn\'t order', description: 'At a restaurant, I ordered the vegetarian pasta. The bill included a €25 steak I never ordered or received. When I pointed it out, the waiter insisted I must have ordered it. They refused to remove it. Should I have paid?' },
+      { title: '¿Debo dejar mi trabajo por la salud mental? | Should I quit my job for mental health?', description: 'Mi trabajo paga bien pero me está afectando mentalmente. Trabajo 60+ horas por semana y mi jefe me contacta los fines de semana. Mis amigos dicen que deje el trabajo, mi familia dice que aguante por el dinero.\n\nMy job pays well but it\'s affecting me mentally. I work 60+ hours per week and my boss contacts me on weekends. My friends say quit, my family says stick it out for the money. What should I do?' },
+      { title: 'Friend keeps bringing their dog everywhere without asking', description: 'My friend brings their large dog to my apartment every time they visit, without asking first. I\'m allergic and have asked them to leave the dog at home. They say their dog has "separation anxiety" and I\'m being unreasonable. Who\'s right?' },
+      { title: 'Taxi driver took longer route and charged extra ¥500', description: 'I took a taxi from the airport. I know the route should take 20 minutes and cost ¥200. The driver took backstreets for 40 minutes and charged ¥700. When I questioned it, he got angry. Should I have refused to pay?' }
+    ]
   }
 ];
 
@@ -112,7 +124,18 @@ const commentTemplates = [
   'You did the right thing by bringing it up.',
   'This is a dealbreaker for me. How about you?',
   'Therapy might help you both work through this.',
-  'You\'re not crazy for feeling this way.'
+  'You\'re not crazy for feeling this way.',
+  // International/multilingual comments
+  'I agree 100%. You did the right thing.',
+  'From my experience in Europe, this would be unacceptable.',
+  'In my culture, we handle this differently but I see your point.',
+  'Totalmente de acuerdo | Totally agree',
+  'This happens everywhere, not just your country.',
+  'Legal advice might be needed here, depending on where you live.',
+  'Cultural differences aside, this is just wrong.',
+  'I\'m from Asia and we face similar issues here.',
+  'Universal problem. You\'re not alone in this.',
+  'Different countries, same drama 😅'
 ];
 
 /**
