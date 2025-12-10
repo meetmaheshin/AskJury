@@ -49,10 +49,13 @@ prisma/migrations/
 client_secret*.json
 *credentials*.json
 
-# Bot system (keep private)
-backend/scripts/
-backend/src/jobs/userGeneratorBot.js
-backend/src/jobs/botActivityManager.js
-backend/src/routes/bots.js
-backend/README-BOTS.md
-PRIVATE-BOT-SYSTEM.md
+# Bot system (now public for Railway deployment)
+# backend/scripts/
+# backend/src/jobs/userGeneratorBot.js
+# backend/src/jobs/botActivityManager.js
+# backend/src/routes/bots.js
+# backend/README-BOTS.md
+# PRIVATE-BOT-SYSTEM.md
+
+# Keep sensitive data exports private
+backend-local-cases-backup.json
