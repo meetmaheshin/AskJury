@@ -196,6 +196,107 @@ router.get('/closed', async (req, res) => {
   }
 });
 
+// Get platform stats (total counts from DB)
+router.get('/stats', async (req, res) => {
+  try {
+    const [totalCases, totalVotes, totalComments] = await Promise.all([
+      prisma.case.count({ where: { status: 'ACTIVE' } }),
+      prisma.vote.count(),
+      prisma.comment.count()
+    ]);
+
+    res.json({
+      totalCases,
+      totalVotes,
+      totalComments
+    });
+  } catch (error) {
+    console.error('Get stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Get trending cases (most engagement in last 48 hours)
+router.get('/trending/top', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 5;
+    const hoursAgo = 48;
+    const cutoffDate = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
+
+    const cases = await prisma.case.findMany({
+      where: {
+        status: 'ACTIVE',
+        createdAt: {
+          gte: cutoffDate
+        }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true
+          }
+        },
+        _count: {
+          select: {
+            votes: true,
+            comments: true
+          }
+        }
+      }
+    });
+
+    // Calculate engagement score (votes * 2 + comments * 3)
+    const casesWithEngagement = cases
+      .map(caseItem => {
+        const engagementScore = (caseItem._count.votes * 2) + (caseItem._count.comments * 3);
+        return {
+          ...caseItem,
+          engagementScore
+        };
+      })
+      .sort((a, b) => b.engagementScore - a.engagementScore)
+      .slice(0, limit);
+
+    // Calculate vote percentages for trending cases
+    const trendingCases = await Promise.all(
+      casesWithEngagement.map(async (caseItem) => {
+        const voteCounts = await prisma.vote.groupBy({
+          by: ['side'],
+          where: { caseId: caseItem.id },
+          _count: true
+        });
+
+        const sideAVotes = voteCounts.find(v => v.side === 'SIDE_A')?._count || 0;
+        const sideBVotes = voteCounts.find(v => v.side === 'SIDE_B')?._count || 0;
+        const totalVotes = sideAVotes + sideBVotes;
+
+        const sideAPercentage = totalVotes > 0 ? Math.round((sideAVotes / totalVotes) * 100) : 50;
+        const sideBPercentage = totalVotes > 0 ? Math.round((sideBVotes / totalVotes) * 100) : 50;
+
+        return {
+          id: caseItem.id,
+          title: caseItem.title,
+          category: caseItem.category,
+          voteCount: totalVotes,
+          commentCount: caseItem._count.comments,
+          engagementScore: caseItem.engagementScore,
+          sideAPercentage,
+          sideBPercentage,
+          createdAt: caseItem.createdAt,
+          user: caseItem.user
+        };
+      })
+    );
+
+    res.json({ trending: trendingCases });
+  } catch (error) {
+    console.error('Get trending cases error:', error);
+    res.status(500).json({ error: 'Failed to fetch trending cases' });
+  }
+});
+
 // Get single case by ID
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
@@ -561,107 +662,6 @@ router.delete('/:id', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Delete case error:', error);
     res.status(500).json({ error: 'Failed to delete case' });
-  }
-});
-
-// Get platform stats (total counts from DB)
-router.get('/stats', async (req, res) => {
-  try {
-    const [totalCases, totalVotes, totalComments] = await Promise.all([
-      prisma.case.count({ where: { status: 'ACTIVE' } }),
-      prisma.vote.count(),
-      prisma.comment.count()
-    ]);
-
-    res.json({
-      totalCases,
-      totalVotes,
-      totalComments
-    });
-  } catch (error) {
-    console.error('Get stats error:', error);
-    res.status(500).json({ error: 'Failed to fetch stats' });
-  }
-});
-
-// Get trending cases (most engagement in last 48 hours)
-router.get('/trending/top', async (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 5;
-    const hoursAgo = 48;
-    const cutoffDate = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
-
-    const cases = await prisma.case.findMany({
-      where: {
-        status: 'ACTIVE',
-        createdAt: {
-          gte: cutoffDate
-        }
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            avatarUrl: true
-          }
-        },
-        _count: {
-          select: {
-            votes: true,
-            comments: true
-          }
-        }
-      }
-    });
-
-    // Calculate engagement score (votes * 2 + comments * 3)
-    const casesWithEngagement = cases
-      .map(caseItem => {
-        const engagementScore = (caseItem._count.votes * 2) + (caseItem._count.comments * 3);
-        return {
-          ...caseItem,
-          engagementScore
-        };
-      })
-      .sort((a, b) => b.engagementScore - a.engagementScore)
-      .slice(0, limit);
-
-    // Calculate vote percentages for trending cases
-    const trendingCases = await Promise.all(
-      casesWithEngagement.map(async (caseItem) => {
-        const voteCounts = await prisma.vote.groupBy({
-          by: ['side'],
-          where: { caseId: caseItem.id },
-          _count: true
-        });
-
-        const sideAVotes = voteCounts.find(v => v.side === 'SIDE_A')?._count || 0;
-        const sideBVotes = voteCounts.find(v => v.side === 'SIDE_B')?._count || 0;
-        const totalVotes = sideAVotes + sideBVotes;
-
-        const sideAPercentage = totalVotes > 0 ? Math.round((sideAVotes / totalVotes) * 100) : 50;
-        const sideBPercentage = totalVotes > 0 ? Math.round((sideBVotes / totalVotes) * 100) : 50;
-
-        return {
-          id: caseItem.id,
-          title: caseItem.title,
-          category: caseItem.category,
-          voteCount: totalVotes,
-          commentCount: caseItem._count.comments,
-          engagementScore: caseItem.engagementScore,
-          sideAPercentage,
-          sideBPercentage,
-          createdAt: caseItem.createdAt,
-          user: caseItem.user
-        };
-      })
-    );
-
-    res.json({ trending: trendingCases });
-  } catch (error) {
-    console.error('Get trending cases error:', error);
-    res.status(500).json({ error: 'Failed to fetch trending cases' });
   }
 });
 
