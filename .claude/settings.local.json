@@ -39,7 +39,21 @@
       "Bash(curl:*)",
       "Bash(npx prisma migrate:*)",
       "Bash(cat:*)",
-      "Bash(timeout 2 curl:*)"
+      "Bash(timeout 2 curl:*)",
+      "Bash(railway status:*)",
+      "Bash(railway link:*)",
+      "Bash(railway run:*)",
+      "Bash(railway logs:*)",
+      "Bash(node scripts/checkLocalCases.js:*)",
+      "Bash(node scripts/exportLocalCases.js:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(node scripts/triggerBotActivity.js:*)",
+      "Bash(for i in {1..10})",
+      "Bash(do echo \"=== Run $i ===\")",
+      "Bash(done)",
+      "Bash(node:*)",
+      "Bash(railway up:*)",
+      "Bash(railway list:*)"
     ],
     "deny": [],
     "ask": []

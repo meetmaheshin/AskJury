@@ -12,7 +12,7 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('hot');
+  const [activeTab, setActiveTab] = useState('new');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [leaderboard, setLeaderboard] = useState([]);
   const [closedCases, setClosedCases] = useState([]); // For marquee
@@ -20,6 +20,7 @@ const Home = () => {
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
   const LIMIT = 20;
+  const [stats, setStats] = useState({ totalCases: 0, totalVotes: 0, totalComments: 0 });
 
   const categories = [
     { value: '', label: 'All Drama', emoji: '🔥' },
@@ -44,6 +45,7 @@ const Home = () => {
     fetchLeaderboard();
     fetchClosedCases(); // For marquee
     fetchTrending(); // For sidebar
+    fetchStats(); // For actual DB counts
   }, []);
 
   const fetchCases = async (reset = false) => {
@@ -118,6 +120,15 @@ const Home = () => {
       setTrending(response.data.trending);
     } catch (err) {
       console.error('Error fetching trending:', err);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await api.get('/cases/stats');
+      setStats(response.data);
+    } catch (err) {
+      console.error('Error fetching stats:', err);
     }
   };
 
@@ -511,18 +522,18 @@ const Home = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-400">Active Cases</span>
-                    <span className="text-lg font-bold text-primary">{cases.length}</span>
+                    <span className="text-lg font-bold text-primary">{stats.totalCases}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-400">Total Votes</span>
                     <span className="text-lg font-bold text-secondary">
-                      {cases.reduce((sum, c) => sum + (c.voteCount || 0), 0)}
+                      {stats.totalVotes}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-400">Total Comments</span>
                     <span className="text-lg font-bold text-success">
-                      {cases.reduce((sum, c) => sum + (c._count?.comments || 0), 0)}
+                      {stats.totalComments}
                     </span>
                   </div>
                 </div>

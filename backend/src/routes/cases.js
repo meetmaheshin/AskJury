@@ -564,6 +564,26 @@ router.delete('/:id', authenticate, async (req, res) => {
   }
 });
 
+// Get platform stats (total counts from DB)
+router.get('/stats', async (req, res) => {
+  try {
+    const [totalCases, totalVotes, totalComments] = await Promise.all([
+      prisma.case.count({ where: { status: 'ACTIVE' } }),
+      prisma.vote.count(),
+      prisma.comment.count()
+    ]);
+
+    res.json({
+      totalCases,
+      totalVotes,
+      totalComments
+    });
+  } catch (error) {
+    console.error('Get stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
 // Get trending cases (most engagement in last 48 hours)
 router.get('/trending/top', async (req, res) => {
   try {

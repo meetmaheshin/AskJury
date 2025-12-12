@@ -48,6 +48,33 @@
     <meta name="language" content="English" />
     <meta name="revisit-after" content="7 days" />
     <link rel="canonical" href="https://askjury.com/" />
+
+    <!-- Structured Data (JSON-LD) for Google -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "AskJury",
+      "alternateName": "The Internet's Courtroom",
+      "url": "https://askjury.com",
+      "description": "Share your side. Let strangers judge. Get the verdict. AskJury is where the internet settles disputes with real opinions from real people.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://askjury.com/?search={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "AskJury",
+      "url": "https://askjury.com",
+      "logo": "https://askjury.com/favicon.svg",
+      "sameAs": []
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
