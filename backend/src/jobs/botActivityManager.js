@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { generateAICase } from '../services/perplexityCaseGenerator.js';
 
 const prisma = new PrismaClient();
 
@@ -178,20 +179,39 @@ async function botCreateCase() {
       return null;
     }
 
-    const template = getRandomCaseTemplate();
+    // 70% chance: Use AI to generate case from trending topics
+    // 30% chance: Use template (fallback)
+    const useAI = Math.random() < 0.7;
+    let caseData = null;
+
+    if (useAI && process.env.PERPLEXITY_API_KEY) {
+      console.log('🤖 Generating AI case from trending topics...');
+      caseData = await generateAICase();
+    }
+
+    // Fallback to templates if AI fails or 30% chance
+    if (!caseData) {
+      const template = getRandomCaseTemplate();
+      caseData = {
+        title: template.title,
+        description: template.description,
+        category: template.category
+      };
+    }
 
     const newCase = await prisma.case.create({
       data: {
         userId: bot.id,
-        title: template.title,
-        description: template.description,
-        category: template.category,
+        title: caseData.title,
+        description: caseData.description,
+        category: caseData.category,
         sideALabel: 'You\'re Right',
         sideBLabel: 'You\'re Wrong'
       }
     });
 
-    console.log(`✅ Bot ${bot.username} created case: "${template.title}"`);
+    const source = useAI && caseData ? '🤖 AI' : '📋 Template';
+    console.log(`✅ Bot ${bot.username} created case (${source}): "${caseData.title.substring(0, 50)}..."`);
     return newCase;
   } catch (error) {
     console.error('❌ Error creating bot case:', error.message);
