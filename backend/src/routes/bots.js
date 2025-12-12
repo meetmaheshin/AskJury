@@ -154,4 +154,58 @@ router.post('/fix-flags', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/bots/delete-duplicates
+ * Delete duplicate cases (admin only)
+ */
+router.post('/delete-duplicates', authenticate, requireAdmin, async (req, res) => {
+  try {
+    console.log('[API] Deleting duplicate cases...');
+
+    // Get all active cases
+    const cases = await prisma.case.findMany({
+      where: { status: 'ACTIVE' },
+      include: { user: { select: { username: true } } },
+      orderBy: { createdAt: 'asc' } // Keep oldest
+    });
+
+    const seenTitles = new Map();
+    const duplicatesToDelete = [];
+
+    // Find duplicates
+    cases.forEach(c => {
+      const normalizedTitle = c.title.toLowerCase().trim();
+      if (seenTitles.has(normalizedTitle)) {
+        duplicatesToDelete.push(c.id);
+      } else {
+        seenTitles.set(normalizedTitle, c);
+      }
+    });
+
+    console.log(`Total cases: ${cases.length}, Duplicates: ${duplicatesToDelete.length}`);
+
+    if (duplicatesToDelete.length === 0) {
+      return res.json({ message: 'No duplicates found', deleted: 0 });
+    }
+
+    // Delete duplicates (cascade will handle votes/comments)
+    const result = await prisma.case.deleteMany({
+      where: { id: { in: duplicatesToDelete } }
+    });
+
+    console.log(`✅ Deleted ${result.count} duplicate cases`);
+
+    res.json({
+      message: 'Duplicates deleted successfully',
+      totalCases: cases.length,
+      uniqueCases: seenTitles.size,
+      deleted: result.count,
+      remaining: cases.length - result.count
+    });
+  } catch (error) {
+    console.error('Delete duplicates error:', error);
+    res.status(500).json({ error: 'Failed to delete duplicates' });
+  }
+});
+
 export default router;
