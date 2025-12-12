@@ -10,12 +10,16 @@ const Home = () => {
   const { isAuthenticated } = useAuth();
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('hot');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [leaderboard, setLeaderboard] = useState([]);
   const [closedCases, setClosedCases] = useState([]); // For marquee
   const [trending, setTrending] = useState([]); // For sidebar
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const LIMIT = 20;
 
   const categories = [
     { value: '', label: 'All Drama', emoji: '🔥' },
@@ -30,7 +34,10 @@ const Home = () => {
   ];
 
   useEffect(() => {
-    fetchCases();
+    // Reset pagination when tab or filter changes
+    setOffset(0);
+    setHasMore(true);
+    fetchCases(true);
   }, [activeTab, categoryFilter]);
 
   useEffect(() => {
@@ -39,21 +46,51 @@ const Home = () => {
     fetchTrending(); // For sidebar
   }, []);
 
-  const fetchCases = async () => {
-    setLoading(true);
+  const fetchCases = async (reset = false) => {
+    if (reset) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
     setError(null);
+
     try {
-      const params = { sort: activeTab };
+      const currentOffset = reset ? 0 : offset;
+      const params = {
+        sort: activeTab,
+        limit: LIMIT,
+        offset: currentOffset
+      };
       if (categoryFilter) {
         params.category = categoryFilter;
       }
+
       const response = await api.get('/cases', { params });
-      setCases(response.data.cases);
+      const newCases = response.data.cases;
+
+      if (reset) {
+        setCases(newCases);
+        setOffset(LIMIT);
+      } else {
+        setCases(prev => [...prev, ...newCases]);
+        setOffset(prev => prev + LIMIT);
+      }
+
+      // If we got fewer cases than the limit, there are no more cases
+      setHasMore(newCases.length === LIMIT);
+
     } catch (err) {
       setError('Failed to load cases');
       console.error('Error fetching cases:', err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreCases = () => {
+    if (!loadingMore && hasMore) {
+      fetchCases(false);
     }
   };
 
@@ -359,11 +396,44 @@ const Home = () => {
             <p className="text-gray-500 mt-2">Be the first to submit a case!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {cases.map((caseItem) => (
-              <CaseCard key={caseItem.id} caseItem={caseItem} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {cases.map((caseItem) => (
+                <CaseCard key={caseItem.id} caseItem={caseItem} />
+              ))}
+            </div>
+
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="mt-8 text-center">
+                <button
+                  onClick={loadMoreCases}
+                  disabled={loadingMore}
+                  className="px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-xl hover:shadow-lg hover:shadow-primary/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingMore ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Loading more...
+                    </span>
+                  ) : (
+                    'Load More Cases'
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* End of results message */}
+            {!hasMore && cases.length > 0 && (
+              <div className="mt-8 text-center py-8 border-t border-gray-800">
+                <p className="text-gray-400 font-medium">You've seen all cases in this category</p>
+                <p className="text-gray-500 text-sm mt-1">Try changing the filter or check back later for new drama!</p>
+              </div>
+            )}
+          </>
         )}
           </main>
 
