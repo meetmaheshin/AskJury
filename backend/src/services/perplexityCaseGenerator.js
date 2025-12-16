@@ -33,7 +33,7 @@ export async function generateAICase() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.1-sonar-small-128k-online', // Online model with web search
+        model: 'sonar', // Lightweight model with web search grounding
         messages: [
           {
             role: 'system',
@@ -66,9 +66,7 @@ Available categories: ${CATEGORIES.join(', ')}`
         ],
         temperature: 0.9,
         max_tokens: 500,
-        top_p: 0.9,
-        search_recency_filter: 'week', // Use recent web search results
-        return_related_questions: false
+        top_p: 0.9
       })
     });
 
