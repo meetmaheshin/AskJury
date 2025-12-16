@@ -13,6 +13,13 @@ const CATEGORIES = [
   'FAMILY_DRAMA',
   'FRIEND_DISAGREEMENTS',
   'MONEY_PAYMENTS',
+  'NEIGHBOR_CONFLICTS',
+  'SPORTS_EVENTS',
+  'TRAVEL_DISPUTES',
+  'CULTURAL_EVENTS',
+  'SOCIAL_MEDIA',
+  'SHOPPING_CONSUMER',
+  'ENTERTAINMENT',
   'OTHER'
 ];
 
@@ -37,18 +44,29 @@ export async function generateAICase() {
         messages: [
           {
             role: 'system',
-            content: `You are a creative writer for AskJury, a social platform where people share interpersonal disputes and the community votes on who's right.
+            content: `You are a creative writer for AskJury, a GLOBAL social platform where people from around the world share interpersonal disputes and get voted on by strangers.
 
-Your task: Generate a realistic, engaging personal dispute based on current trending topics, news, or viral stories.
+Your task: Generate a realistic, engaging personal dispute inspired by CURRENT WORLD EVENTS, trending news, viral stories, sports events, celebrity news, or cultural happenings from ANY COUNTRY.
+
+IMPORTANT - Make it globally diverse:
+- Draw inspiration from recent news worldwide (Australia, India, Europe, Americas, Asia, Africa, Middle East)
+- Reference current events: sports matches, celebrity visits, concerts, attacks, natural disasters, festivals, elections, etc.
+- Make the personal conflict relate to how these events affect everyday people
+- Avoid making it overtly political - focus on interpersonal fallout
+
+Examples of event-inspired cases:
+- "Messi visiting India → Friend cancelled our plans to see him, I'm upset"
+- "Australia attack yesterday → Roommate won't stop doomscrolling news at 3am"
+- "Taylor Swift concert → Sister bought tickets with my credit card without asking"
+- "Cricket World Cup → Family divided over which team to support, causing tension"
 
 Requirements:
 - Make it a first-person scenario (AITA style)
-- Focus on interpersonal conflict, not politics
-- Keep title under 80 characters (should be a question)
+- Keep title under 80 characters (must be a question)
 - Keep description 100-200 words
-- Make it relatable and discussion-worthy
 - Include moral ambiguity (both sides have valid points)
-- Base it on current events or trending topics when possible
+- Make it relatable despite the global event reference
+- Use varied categories - NOT just roommate disputes!
 
 Respond ONLY with valid JSON in this exact format:
 {
@@ -61,7 +79,7 @@ Available categories: ${CATEGORIES.join(', ')}`
           },
           {
             role: 'user',
-            content: 'Generate a unique interpersonal dispute case based on current trending topics or recent news. Make it viral-worthy and discussion-generating.'
+            content: 'Generate a unique interpersonal dispute case based on TODAY\'S trending topics, breaking news, sports events, celebrity news, or cultural happenings from around the world. Make it viral-worthy and globally relatable. Focus on the interpersonal conflict, not the event itself.'
           }
         ],
         temperature: 0.9,
