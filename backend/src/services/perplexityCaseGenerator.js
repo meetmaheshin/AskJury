@@ -44,34 +44,58 @@ export async function generateAICase() {
         messages: [
           {
             role: 'system',
-            content: `You are a creative writer for AskJury, a GLOBAL social platform where people from around the world share interpersonal disputes and get voted on by strangers.
+            content: `You are a creative writer for AskJury, a GLOBAL social platform where people from around the world share interpersonal disputes.
 
-Your task: Generate a realistic, engaging personal dispute inspired by CURRENT WORLD EVENTS, trending news, viral stories, sports events, celebrity news, or cultural happenings from ANY COUNTRY.
+Generate DIVERSE, UNIQUE personal disputes inspired by CURRENT WORLD EVENTS from ANY COUNTRY.
 
-IMPORTANT - Make it globally diverse:
-- Draw inspiration from recent news worldwide (Australia, India, Europe, Americas, Asia, Africa, Middle East)
-- Reference current events: sports matches, celebrity visits, concerts, attacks, natural disasters, festivals, elections, etc.
-- Make the personal conflict relate to how these events affect everyday people
-- Avoid making it overtly political - focus on interpersonal fallout
+CRITICAL DIVERSITY REQUIREMENTS:
+1. VARY TITLE FORMAT - Do NOT always use "AITA":
+   - "AITA for..." (30% of time)
+   - "Did I overreact when..." (20%)
+   - "Was I wrong to..." (20%)
+   - "Should I apologize for..." (15%)
+   - "Am I being unfair about..." (15%)
 
-Examples of event-inspired cases:
-- "Messi visiting India → Friend cancelled our plans to see him, I'm upset"
-- "Australia attack yesterday → Roommate won't stop doomscrolling news at 3am"
-- "Taylor Swift concert → Sister bought tickets with my credit card without asking"
-- "Cricket World Cup → Family divided over which team to support, causing tension"
+2. GLOBAL LOCATIONS - Include cultural context:
+   - Use city/country names: "in Mumbai", "during Ramadan in Dubai", "at Sydney cafe"
+   - Reference local customs, festivals, currencies (Rs, €, £, ¥, R$)
+   - Mention local foods, traditions, weather
+
+3. DIVERSE TOPICS - Check recent global news:
+   - Sports: Cricket, football, basketball, Olympics, local tournaments
+   - Entertainment: Concerts, film releases, award shows, TV finales
+   - Cultural: Festivals (Diwali, Christmas, Eid, Lunar New Year), weddings
+   - Natural events: Heatwaves, monsoons, snow storms
+   - Technology: App launches, gaming events, viral trends
+   - AVOID repeating same event multiple times!
+
+4. VARIED WRITING STYLES:
+   - Some formal, some casual
+   - Different sentence structures
+   - Various levels of emotion (angry, confused, guilty, defensive)
+
+5. MIXED CATEGORIES - Use ALL 14 categories equally:
+   ${CATEGORIES.join(', ')}
+
+Examples of GOOD diverse cases:
+- "Did I overreact firing my maid during Diwali celebrations in Delhi?"
+- "Was I wrong to sell my Cricket World Cup tickets after losing my job?"
+- "Should I apologize for missing my best friend's nikah for a K-pop concert?"
+- "Am I being unfair expecting my roommate to split ₹15,000 electricity bill?"
+- "Skipped family Christmas lunch to watch Manchester derby - too harsh?"
 
 Requirements:
-- Make it a first-person scenario (AITA style)
-- Keep title under 80 characters (must be a question)
-- Keep description 100-200 words
-- Include moral ambiguity (both sides have valid points)
-- Make it relatable despite the global event reference
-- Use varied categories - NOT just roommate disputes!
+- First-person scenario
+- Title under 80 characters (MUST be a question)
+- Description 100-200 words
+- Include location/cultural markers
+- Moral ambiguity (both sides valid)
+- UNIQUE - never repeat topics
 
-Respond ONLY with valid JSON in this exact format:
+Respond ONLY with valid JSON:
 {
   "title": "Question format title here?",
-  "description": "First-person scenario here...",
+  "description": "First-person scenario with location/cultural context...",
   "category": "ONE_OF_THE_CATEGORIES"
 }
 
@@ -79,12 +103,12 @@ Available categories: ${CATEGORIES.join(', ')}`
           },
           {
             role: 'user',
-            content: 'Generate a unique interpersonal dispute case based on TODAY\'S trending topics, breaking news, sports events, celebrity news, or cultural happenings from around the world. Make it viral-worthy and globally relatable. Focus on the interpersonal conflict, not the event itself.'
+            content: 'Generate ONE completely unique interpersonal dispute based on TODAY\'S diverse global events (NOT overdone topics like Jake Paul). Use different locations, currency symbols, cultural contexts, and title formats. Include city/country names. Make it fresh and globally diverse!'
           }
         ],
-        temperature: 0.9,
+        temperature: 1.0,  // Maximum creativity for diversity
         max_tokens: 500,
-        top_p: 0.9
+        top_p: 0.95  // High randomness for variety
       })
     });
 
