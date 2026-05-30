@@ -9,11 +9,12 @@ import {
   COMPANY_POOL,
 } from '../src/jobs/botActivityManager.js';
 import { LIFE_COMMENTS } from '../src/jobs/lifeTemplates.js';
+import { HUMAN_COMMENTS } from '../src/jobs/globalContent.js';
 
 const prisma = new PrismaClient();
 
 // ---- Tunables (matches the "realistic / established" backfill) ----
-const NUM_BOTS = 80;
+const NUM_BOTS = 105;
 const TARGET_CASES = 500;
 const TARGET_COMMENTS = 1500;
 const LAUNCH = new Date('2025-12-02T00:00:00Z'); // first deploy
@@ -144,7 +145,8 @@ async function main() {
   const commentsData = [];
   for (let i = 0; i < TARGET_COMMENTS; i++) {
     const c = pick(createdCases);
-    const pool = WORK_CATEGORIES.has(c.category) ? WORKPLACE_COMMENTS : LIFE_COMMENTS;
+    const themed = WORK_CATEGORIES.has(c.category) ? WORKPLACE_COMMENTS : LIFE_COMMENTS;
+    const pool = [...HUMAN_COMMENTS, ...HUMAN_COMMENTS, ...themed];
     const offset = Math.random() * (NOW.getTime() - new Date(c.createdAt).getTime());
     commentsData.push({
       caseId: c.id,

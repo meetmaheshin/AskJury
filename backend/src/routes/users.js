@@ -17,7 +17,7 @@ router.get('/:id', async (req, res) => {
       where: { id },
       select: {
         id: true,
-        username: true,
+        anonymousHandle: true,
         avatarUrl: true,
         bio: true,
         createdAt: true,
@@ -56,7 +56,7 @@ router.get('/:id/cases', async (req, res) => {
         user: {
           select: {
             id: true,
-            username: true,
+            anonymousHandle: true,
             avatarUrl: true
           }
         },
@@ -178,7 +178,7 @@ router.get('/leaderboard/top', async (req, res) => {
     const users = await prisma.user.findMany({
       select: {
         id: true,
-        username: true,
+        anonymousHandle: true,
         avatarUrl: true,
         comments: {
           select: {
@@ -203,7 +203,7 @@ router.get('/leaderboard/top', async (req, res) => {
 
         return {
           id: user.id,
-          username: user.username,
+          anonymousHandle: user.anonymousHandle,
           avatarUrl: user.avatarUrl,
           totalUpvotes,
           earnings,

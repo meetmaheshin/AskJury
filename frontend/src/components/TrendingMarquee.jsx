@@ -63,9 +63,9 @@ export default function TrendingMarquee({ cases = [] }) {
  * Desktop: Full design 320px wide
  */
 function MarqueeCard({ caseItem }) {
-  const totalVotes = caseItem.totalVotes || 0;
-  const sideAPercentage = caseItem.sideAPercentage || 50;
-  const sideBPercentage = caseItem.sideBPercentage || 50;
+  const totalVotes = caseItem.voteCount ?? caseItem.totalVotes ?? 0;
+  const sideAPercentage = caseItem.sideAPercentage ?? 50;
+  const sideBPercentage = caseItem.sideBPercentage ?? 50;
 
   return (
     <Link

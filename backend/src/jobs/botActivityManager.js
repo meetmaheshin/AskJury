@@ -3,6 +3,7 @@ import { generateAICase } from '../services/perplexityCaseGenerator.js';
 import { findOrCreateCompany } from '../utils/companies.js';
 import { CATEGORY_VALUES, REACTION_TYPES, CATEGORIES } from '../utils/constants.js';
 import { LIFE_TEMPLATES, LIFE_COMMENTS } from './lifeTemplates.js';
+import { MULTILINGUAL_WORKPLACE_TEMPLATES, HUMAN_COMMENTS } from './globalContent.js';
 
 const prisma = new PrismaClient();
 
@@ -105,8 +106,8 @@ const COMPANY_POOL = [
 const PERSON_TARGETS = ['my manager', 'my boss', 'my coworker', 'my team lead', 'HR', 'my skip-level'];
 const LIFE_TARGETS = ['my roommate', 'my partner', 'my friend', 'my sister', 'my brother', 'my neighbor', 'my parents'];
 
-// Workplace + restored life templates — bots post across both.
-const ALL_CASE_TEMPLATES = [...caseTemplates, ...LIFE_TEMPLATES];
+// Workplace + multilingual company rants + restored life templates — bots post across all.
+const ALL_CASE_TEMPLATES = [...caseTemplates, ...MULTILINGUAL_WORKPLACE_TEMPLATES, ...LIFE_TEMPLATES];
 
 // Workplace-themed comments bots leave on cases.
 const commentTemplates = [
@@ -344,7 +345,9 @@ async function botCommentOnCase() {
       return null;
     }
 
-    const pool = WORK_CATEGORIES.has(randomCase.category) ? commentTemplates : LIFE_COMMENTS;
+    const themed = WORK_CATEGORIES.has(randomCase.category) ? commentTemplates : LIFE_COMMENTS;
+    // Mostly human/emotional lines, with some themed advice mixed in.
+    const pool = [...HUMAN_COMMENTS, ...HUMAN_COMMENTS, ...themed];
     const comment = await prisma.comment.create({
       data: {
         caseId: randomCase.id,

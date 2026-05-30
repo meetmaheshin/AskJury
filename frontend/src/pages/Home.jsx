@@ -5,7 +5,7 @@ import api from '../utils/api';
 import CaseCard from '../components/CaseCard';
 import { HomePageSEO } from '../components/SEO';
 import TrendingMarquee from '../components/TrendingMarquee';
-import { CATEGORIES } from '../utils/categories';
+import { CATEGORIES, authorName } from '../utils/categories';
 
 const Home = () => {
   const { isAuthenticated } = useAuth();
@@ -464,10 +464,10 @@ const Home = () => {
                         <div className="flex items-center space-x-3">
                           <div className="relative">
                             {user.avatarUrl ? (
-                              <img src={user.avatarUrl} alt={user.username} className="w-10 h-10 rounded-full" />
+                              <img src={user.avatarUrl} alt={authorName(user)} className="w-10 h-10 rounded-full" />
                             ) : (
                               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-success to-green-500 text-white flex items-center justify-center font-bold">
-                                {user.username[0].toUpperCase()}
+                                {authorName(user).charAt(0).toUpperCase()}
                               </div>
                             )}
                             {index < 3 && (
@@ -481,7 +481,7 @@ const Home = () => {
                             )}
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-white">{user.username}</p>
+                            <p className="text-sm font-semibold text-white">{authorName(user)}</p>
                             <div className="flex items-center space-x-2 text-xs text-gray-400">
                               <span className="flex items-center">
                                 <svg className="w-3 h-3 mr-1 text-success" fill="currentColor" viewBox="0 0 20 20">

@@ -13,7 +13,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ username: '', bio: '' });
+  const [editForm, setEditForm] = useState({ bio: '' });
 
   const isOwnProfile = currentUser?.id === id;
 
@@ -27,10 +27,7 @@ const Profile = () => {
     try {
       const response = await api.get(`/users/${id}`);
       setProfile(response.data.user);
-      setEditForm({
-        username: response.data.user.username,
-        bio: response.data.user.bio || '',
-      });
+      setEditForm({ bio: response.data.user.bio || '' });
     } catch (err) {
       setError('Failed to load profile');
       console.error('Error fetching profile:', err);
@@ -103,26 +100,19 @@ const Profile = () => {
               {profile.avatarUrl ? (
                 <img
                   src={profile.avatarUrl}
-                  alt={profile.username}
+                  alt={profile.anonymousHandle}
                   className="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex-shrink-0"
                 />
               ) : (
                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-primary text-white flex items-center justify-center text-2xl sm:text-3xl font-bold flex-shrink-0">
-                  {profile.username[0].toUpperCase()}
+                  {(profile.anonymousHandle || '?').charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="min-w-0 flex-1">
                 {isEditing ? (
                   <form onSubmit={handleSaveProfile} className="space-y-2">
-                    <input
-                      type="text"
-                      value={editForm.username}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, username: e.target.value })
-                      }
-                      className="input"
-                      placeholder="Username"
-                    />
+                    <p className="text-lg font-bold text-white">{profile.anonymousHandle}</p>
+                    <p className="text-xs text-gray-500">Your handle is anonymous and can't be changed.</p>
                     <textarea
                       value={editForm.bio}
                       onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
@@ -138,10 +128,7 @@ const Profile = () => {
                         type="button"
                         onClick={() => {
                           setIsEditing(false);
-                          setEditForm({
-                            username: profile.username,
-                            bio: profile.bio || '',
-                          });
+                          setEditForm({ bio: profile.bio || '' });
                         }}
                         className="btn btn-secondary text-sm"
                       >
@@ -152,7 +139,7 @@ const Profile = () => {
                 ) : (
                   <>
                     <h1 className="text-2xl sm:text-3xl font-bold text-white truncate">
-                      {profile.username}
+                      {profile.anonymousHandle}
                     </h1>
                     {profile.bio && (
                       <p className="text-gray-400 mt-1 sm:mt-2 text-sm sm:text-base line-clamp-2">{profile.bio}</p>
@@ -301,7 +288,7 @@ const Profile = () => {
 
         <div>
           <h2 className="text-2xl font-bold text-white mb-4">
-            {isOwnProfile ? 'Your Cases' : `${profile.username}'s Cases`}
+            {isOwnProfile ? 'Your Cases' : `${profile.anonymousHandle}'s Cases`}
           </h2>
 
           {cases.length === 0 ? (
