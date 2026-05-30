@@ -69,3 +69,6 @@ client_secret*.json
 
 # Keep sensitive data exports private
 backend-local-cases-backup.json
+
+# stray temp files
+*.tmp
