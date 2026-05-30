@@ -39,8 +39,23 @@ model User {
   reactions    Reaction[]
   comments     Comment[]
   reports      Report[]
+  pushSubscriptions PushSubscription[]
 
   @@map("users")
+}
+
+// Web Push subscriptions (one device/browser per row) for notifications.
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  endpoint  String   @unique
+  keys      Json     // { p256dh, auth }
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 // Companies people rant about. Created on-demand when a post tags a company.

@@ -19,6 +19,7 @@ import commentsRoutes from './routes/comments.js';
 import usersRoutes from './routes/users.js';
 import oauthRoutes from './routes/oauth.js';
 import botsRoutes from './routes/bots.js';
+import pushRoutes from './routes/push.js';
 import { PrismaClient } from '@prisma/client';
 import { autoCloseCases } from './jobs/autoCloseCases.js';
 import { generateBotUsers } from './jobs/userGeneratorBot.js';
@@ -160,6 +161,7 @@ app.use('/api/cases', casesRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/bots', botsRoutes);
+app.use('/api/push', pushRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

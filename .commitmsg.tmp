@@ -1,0 +1,15 @@
+PWA: installable app, offline service worker, web-push notifications
+
+- Icons: generate branded PWA/favicon/apple-touch icons (were missing).
+- Manifest: standalone app, proper any+maskable icons, theme.
+- Service worker: offline app-shell (SPA-aware caching) + push + notificationclick handlers.
+- Install prompt + notification toggle in the footer (PwaControls).
+- Web push backend: web-push dep, PushSubscription model, /api/push routes
+  (vapid-public-key, subscribe, unsubscribe), and a util that notifies a case
+  owner when their case gets a verdict (degrades gracefully if VAPID unset).
+- Mobile: viewport-fit=cover for safe areas.
+
+Requires VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT env vars
+(documented in backend/.env.example); set them in Railway to enable push.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>

@@ -5,6 +5,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { calculateVerdict } from '../utils/verdictCalculator.js';
+import { sendPushToUser } from '../utils/push.js';
 
 const prisma = new PrismaClient();
 
@@ -74,6 +75,15 @@ export async function autoCloseCases() {
           }
         });
       }
+
+      // Notify the owner their case got a verdict (no-op if push isn't configured / no subscription).
+      const verdictText = verdict === 'SIDE_A_WINS' ? 'You won!' : verdict === 'SIDE_B_WINS' ? 'The jury sided against you' : 'It ended in a tie';
+      sendPushToUser(caseItem.userId, {
+        title: '⚖️ Verdict is in',
+        body: `${verdictText} — "${caseItem.title.slice(0, 60)}"`,
+        url: `/case/${caseItem.id}`,
+        tag: `verdict-${caseItem.id}`,
+      }).catch(() => {});
 
       console.log(`[AUTO-CLOSE] Closed case ${caseItem.id} - Verdict: ${verdict}, Reward: $${ownerReward}`);
     }

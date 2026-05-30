@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import PwaControls from './PwaControls';
 
 const Footer = () => {
   const { isAuthenticated } = useAuth();
@@ -93,6 +94,10 @@ const Footer = () => {
                 support@askjury.com
               </a>
             </div>
+
+            <div className="mt-6">
+              <PwaControls />
+            </div>
           </div>
         </div>
 
@@ -103,7 +108,7 @@ const Footer = () => {
               © {currentYear} AskJury. All rights reserved.
             </p>
             <div className="flex items-center space-x-6">
-              <span className="text-gray-500 text-xs">Made with ⚡ for justice seekers everywhere</span>
+              <span className="text-gray-500 text-xs">Made by appzur for justice seekers everywhere</span>
             </div>
           </div>
         </div>
