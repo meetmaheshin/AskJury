@@ -58,17 +58,17 @@ const CaseCard = ({ caseItem }) => {
         <div className="relative z-10 h-full flex flex-col min-h-[280px]">
           
           {/* Header with user info */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 backdrop-blur-sm bg-black/20">
-            <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm ring-2 ring-white/20">
+          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-white/10 backdrop-blur-sm bg-black/20">
+            <div className="flex items-center space-x-3 min-w-0 flex-1">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm ring-2 ring-white/20 flex-shrink-0">
                 {authorName(caseItem.user).charAt(0).toUpperCase()}
               </div>
-              <div>
-                <p className="font-semibold text-white text-sm drop-shadow-lg">{authorName(caseItem.user)}</p>
+              <div className="min-w-0">
+                <p className="font-semibold text-white text-sm drop-shadow-lg truncate">{authorName(caseItem.user)}</p>
                 <p className="text-xs text-gray-300">{formatTimeAgo(caseItem.createdAt)}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               {/* Image indicator */}
               {hasValidImage && (
                 <div className="flex items-center bg-white/10 backdrop-blur-md text-white text-xs px-2 py-1 rounded-full border border-white/20">
@@ -81,7 +81,7 @@ const CaseCard = ({ caseItem }) => {
               <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full border ${isVent ? 'bg-secondary/20 text-secondary border-secondary/30' : 'bg-primary/20 text-primary border-primary/30'}`}>
                 {isVent ? 'Vent' : 'Judge'}
               </span>
-              <span className="text-xs font-medium px-2.5 py-1 bg-white/10 backdrop-blur-md text-white rounded-full border border-white/20">
+              <span className="text-[10px] font-medium px-2 py-1 bg-white/10 backdrop-blur-md text-white rounded-full border border-white/20 whitespace-nowrap truncate max-w-[96px]">
                 {getCategoryLabel(caseItem.category)}
               </span>
             </div>
