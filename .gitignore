@@ -42,6 +42,10 @@ nul
 # Local portable Postgres (dev only)
 .localdb/
 
+# Local database backups (never commit DB dumps)
+backups/
+*.local.env
+
 # Prisma
 prisma/migrations/
 

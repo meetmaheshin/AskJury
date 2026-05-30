@@ -2,19 +2,36 @@
  * Shared domain constants for the workplace-complaint pivot.
  */
 
-// Workplace categories (must match the CaseCategory enum in schema.prisma)
+// Categories (must match the CaseCategory enum in schema.prisma).
+// Hybrid: workplace topics + the original life topics.
 export const CATEGORIES = [
-  { value: 'TOXIC_MANAGEMENT', label: 'Toxic Management' },
-  { value: 'BAD_BOSS', label: 'Bad Boss' },
-  { value: 'COWORKER_DRAMA', label: 'Coworker Drama' },
-  { value: 'PAY_AND_PROMOTION', label: 'Pay & Promotion' },
-  { value: 'JOB_SECURITY', label: 'Layoffs & Job Security' },
-  { value: 'WORK_LIFE_BALANCE', label: 'Burnout & Work-Life Balance' },
-  { value: 'HR_ISSUES', label: 'HR Issues' },
-  { value: 'OFFICE_POLITICS', label: 'Office Politics' },
-  { value: 'RETURN_TO_OFFICE', label: 'Return to Office' },
-  { value: 'WORK_CULTURE', label: 'Work Culture' },
-  { value: 'OTHER', label: 'Other' },
+  // Workplace
+  { value: 'TOXIC_MANAGEMENT', label: 'Toxic Management', group: 'work' },
+  { value: 'BAD_BOSS', label: 'Bad Boss', group: 'work' },
+  { value: 'COWORKER_DRAMA', label: 'Coworker Drama', group: 'work' },
+  { value: 'PAY_AND_PROMOTION', label: 'Pay & Promotion', group: 'work' },
+  { value: 'JOB_SECURITY', label: 'Layoffs & Job Security', group: 'work' },
+  { value: 'WORK_LIFE_BALANCE', label: 'Burnout & Work-Life Balance', group: 'work' },
+  { value: 'HR_ISSUES', label: 'HR Issues', group: 'work' },
+  { value: 'OFFICE_POLITICS', label: 'Office Politics', group: 'work' },
+  { value: 'RETURN_TO_OFFICE', label: 'Return to Office', group: 'work' },
+  { value: 'WORK_CULTURE', label: 'Work Culture', group: 'work' },
+  // Life
+  { value: 'ROOMMATE_DISPUTES', label: 'Roommate Disputes', group: 'life' },
+  { value: 'RELATIONSHIP_ISSUES', label: 'Relationship Issues', group: 'life' },
+  { value: 'WORKPLACE_CONFLICTS', label: 'Workplace Conflicts', group: 'life' },
+  { value: 'FAMILY_DRAMA', label: 'Family Drama', group: 'life' },
+  { value: 'FRIEND_DISAGREEMENTS', label: 'Friend Disagreements', group: 'life' },
+  { value: 'MONEY_PAYMENTS', label: 'Money & Payments', group: 'life' },
+  { value: 'NEIGHBOR_CONFLICTS', label: 'Neighbor Conflicts', group: 'life' },
+  { value: 'SPORTS_EVENTS', label: 'Sports & Events', group: 'life' },
+  { value: 'TRAVEL_DISPUTES', label: 'Travel Disputes', group: 'life' },
+  { value: 'CULTURAL_EVENTS', label: 'Cultural Events', group: 'life' },
+  { value: 'SOCIAL_MEDIA', label: 'Social Media', group: 'life' },
+  { value: 'SHOPPING_CONSUMER', label: 'Shopping & Consumer', group: 'life' },
+  { value: 'ENTERTAINMENT', label: 'Entertainment', group: 'life' },
+  { value: 'POLITICS', label: 'Politics', group: 'life' },
+  { value: 'OTHER', label: 'Other', group: 'life' },
 ];
 
 export const CATEGORY_VALUES = CATEGORIES.map((c) => c.value);

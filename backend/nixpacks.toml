@@ -4,8 +4,10 @@ nixPkgs = ['nodejs_20']
 [phases.install]
 cmds = ['npm ci']
 
+# IMPORTANT: use `db push` WITHOUT --accept-data-loss. Plain db push refuses
+# data-losing changes (it aborts) instead of wiping the database.
 [phases.build]
-cmds = ['npx prisma generate', 'npx prisma migrate deploy']
+cmds = ['npx prisma generate', 'npx prisma db push']
 
 [start]
 cmd = 'npm start'

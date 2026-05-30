@@ -1,9 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import { generateAICase } from '../services/perplexityCaseGenerator.js';
 import { findOrCreateCompany } from '../utils/companies.js';
-import { CATEGORY_VALUES, REACTION_TYPES } from '../utils/constants.js';
+import { CATEGORY_VALUES, REACTION_TYPES, CATEGORIES } from '../utils/constants.js';
+import { LIFE_TEMPLATES, LIFE_COMMENTS } from './lifeTemplates.js';
 
 const prisma = new PrismaClient();
+
+// Category values that belong to the workplace group (used for company tagging + comment tone).
+const WORK_CATEGORIES = new Set(CATEGORIES.filter((c) => c.group === 'work').map((c) => c.value));
 
 // Workplace-rant case templates, keyed by the CaseCategory enum in schema.prisma.
 // Each post is either a JUDGE (two-sided vote) or a VENT (reactions only).
@@ -99,6 +103,10 @@ const COMPANY_POOL = [
 
 // Free-text targets for PERSON-aimed rants.
 const PERSON_TARGETS = ['my manager', 'my boss', 'my coworker', 'my team lead', 'HR', 'my skip-level'];
+const LIFE_TARGETS = ['my roommate', 'my partner', 'my friend', 'my sister', 'my brother', 'my neighbor', 'my parents'];
+
+// Workplace + restored life templates — bots post across both.
+const ALL_CASE_TEMPLATES = [...caseTemplates, ...LIFE_TEMPLATES];
 
 // Workplace-themed comments bots leave on cases.
 const commentTemplates = [
@@ -144,9 +152,9 @@ async function getRandomBots(count = 1) {
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-/** Generate a random workplace case from templates. */
+/** Generate a random case from templates (workplace + life). */
 function getRandomCaseTemplate() {
-  const categoryData = pick(caseTemplates);
+  const categoryData = pick(ALL_CASE_TEMPLATES);
   const template = pick(categoryData.templates);
   return { ...template, category: categoryData.category };
 }
@@ -158,18 +166,19 @@ function decorateCase(caseData) {
     ? caseData.postType
     : Math.random() < 0.55 ? 'JUDGE' : 'VENT';
 
-  // Target: 30% a named company, 25% a person, rest general.
+  // Target: workplace rants can tag a company (~30%); otherwise a person; rest general.
+  const isWork = WORK_CATEGORIES.has(caseData.category);
   const roll = Math.random();
   let targetType = 'GENERAL';
   let targetName = null;
   let companyName = null;
-  if (roll < 0.3) {
+  if (isWork && roll < 0.3) {
     targetType = 'COMPANY';
     companyName = pick(COMPANY_POOL);
     targetName = companyName;
   } else if (roll < 0.55) {
     targetType = 'PERSON';
-    targetName = pick(PERSON_TARGETS);
+    targetName = pick(isWork ? PERSON_TARGETS : LIFE_TARGETS);
   }
 
   return { ...caseData, postType, targetType, targetName, companyName };
@@ -335,11 +344,12 @@ async function botCommentOnCase() {
       return null;
     }
 
+    const pool = WORK_CATEGORIES.has(randomCase.category) ? commentTemplates : LIFE_COMMENTS;
     const comment = await prisma.comment.create({
       data: {
         caseId: randomCase.id,
         userId: bot.id,
-        content: pick(commentTemplates),
+        content: pick(pool),
       },
     });
 
@@ -425,4 +435,9 @@ export {
   botVoteOnComment,
   runBotActivity,
   runMultipleBotActivities,
+  // Exposed so the seed script can reuse the same content pools.
+  ALL_CASE_TEMPLATES,
+  commentTemplates as WORKPLACE_COMMENTS,
+  WORK_CATEGORIES,
+  COMPANY_POOL,
 };

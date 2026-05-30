@@ -34,45 +34,36 @@ export async function generateAICase() {
         messages: [
           {
             role: 'system',
-            content: `You are a writer for a GLOBAL workplace-venting platform where people rant about their jobs, bosses, coworkers, pay, and office culture — then let strangers weigh in.
+            content: `You are a writer for a GLOBAL "who's right?" platform. People post two kinds of disputes and let strangers weigh in:
+  (A) WORKPLACE rants — bosses, coworkers, pay, layoffs, burnout, HR, RTO, office culture.
+  (B) EVERYDAY LIFE disputes — roommates, relationships, family, friends, money, neighbors, travel, etc.
 
-Generate ONE fresh, realistic WORKPLACE scenario inspired by CURRENT world-of-work trends from ANY country.
-
-WHAT TO WRITE ABOUT (rotate widely, do NOT repeat the same theme):
-- Toxic managers, bad bosses, credit-stealing, micromanagement
-- Coworker drama (open-plan annoyances, idea theft, cliques)
-- Pay and promotion (loyalty tax, pay transparency leaks, denied raises)
-- Layoffs and job security (RIFs, contractor replacement, survivor guilt)
-- Burnout and work-life balance (always-on culture, PTO guilt, after-hours pings)
-- HR that protects the company, not the employee
-- Office politics (visibility games, turf wars, being excluded)
-- Return-to-office mandates, badge tracking, hot-desking, long commutes
-- Work culture ("we're a family", forced fun, hustle memes)
+Generate ONE fresh, realistic scenario from EITHER bucket, inspired by CURRENT real-world trends from ANY country. Rotate widely between work and life and across themes — do NOT repeat the same topic.
 
 POST TYPE — choose one:
 - "JUDGE" : there are two defensible sides; readers vote who's right (use for ~55%)
 - "VENT"  : pure rant, no clear question; readers just react (use for ~45%)
 
-CATEGORY — choose the single best fit from:
+CATEGORY — choose the single best fit from this exact list:
 ${CATEGORIES.join(', ')}
 
 DIVERSITY REQUIREMENTS:
-- Vary title format: "AITA for...", "Did I overreact when...", "Was I wrong to...", "Just need to vent:...", "My boss just...". Do NOT always start with AITA.
-- Global context welcome: city/country, currency (Rs, €, £, ¥, $), local norms — but keep it WORKPLACE.
+- Vary title format: "AITA for...", "Did I overreact when...", "Was I wrong to...", "Just need to vent:...". Do NOT always start with AITA.
+- Global context welcome: city/country, currency (Rs, €, £, ¥, $), local norms and customs.
 - Vary tone: angry, exhausted, defensive, deadpan, darkly funny.
 - First-person. Title under 110 characters. Description 80-180 words.
 
 Respond ONLY with valid JSON:
 {
   "title": "Title here",
-  "description": "First-person workplace scenario...",
+  "description": "First-person scenario...",
   "category": "ONE_OF_THE_CATEGORIES",
   "postType": "JUDGE or VENT"
 }`,
           },
           {
             role: 'user',
-            content: 'Generate ONE completely unique workplace rant grounded in a CURRENT real-world work trend (layoffs, RTO, AI replacing roles, pay transparency, burnout, etc.). Make it specific and fresh — avoid generic clichés and do not reuse common examples.',
+            content: 'Generate ONE completely unique dispute — either a workplace rant or an everyday-life dispute (roommate/relationship/family/friend/money/etc.) — grounded in a CURRENT real-world trend. Make it specific and fresh; avoid generic clichés and do not reuse common examples.',
           },
         ],
         temperature: 1.0,

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
-import { CATEGORIES } from '../utils/categories';
+import { CATEGORIES, CATEGORY_GROUPS } from '../utils/categories';
 
 const SubmitCase = () => {
   const { isAuthenticated } = useAuth();
@@ -187,10 +187,14 @@ const SubmitCase = () => {
                   onChange={(e) => setCategory(e.target.value)}
                   required
                 >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat.value} value={cat.value}>
-                      {cat.emoji} {cat.label}
-                    </option>
+                  {Object.entries(CATEGORY_GROUPS).map(([group, cats]) => (
+                    <optgroup key={group} label={group}>
+                      {cats.map((cat) => (
+                        <option key={cat.value} value={cat.value}>
+                          {cat.emoji} {cat.label}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>
