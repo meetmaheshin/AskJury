@@ -24,6 +24,7 @@ export const authenticate = async (req, res, next) => {
         id: true,
         email: true,
         username: true,
+        anonymousHandle: true,
         avatarUrl: true,
         bio: true,
         isVerified: true,

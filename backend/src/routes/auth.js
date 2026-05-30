@@ -4,14 +4,16 @@ import { body, validationResult } from 'express-validator';
 import { PrismaClient } from '@prisma/client';
 import { generateToken } from '../utils/jwt.js';
 import { authenticate } from '../middleware/auth.js';
+import { generateUniqueHandle, generateUniqueUsername } from '../utils/handleGenerator.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Register
+// Register — any email works. We auto-assign a permanent anonymous handle;
+// the username is internal only (never shown publicly) and is optional.
 router.post('/register', [
   body('email').isEmail().normalizeEmail(),
-  body('username').trim().isLength({ min: 3, max: 30 }).matches(/^[a-zA-Z0-9_]+$/),
+  body('username').optional({ checkFalsy: true }).trim().isLength({ min: 3, max: 30 }).matches(/^[a-zA-Z0-9_]+$/),
   body('password').isLength({ min: 8 })
 ], async (req, res) => {
   try {
@@ -20,35 +22,30 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, username, password } = req.body;
+    const { email, password } = req.body;
 
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email },
-          { username }
-        ]
-      }
-    });
-
-    if (existingUser) {
-      return res.status(400).json({
-        error: existingUser.email === email ? 'Email already registered' : 'Username already taken'
-      });
+    const existingEmail = await prisma.user.findUnique({ where: { email } });
+    if (existingEmail) {
+      return res.status(400).json({ error: 'Email already registered' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const anonymousHandle = await generateUniqueHandle(prisma);
+    // Internal account username (not public). Use provided one if free, else derive from handle.
+    const username = await generateUniqueUsername(prisma, req.body.username || anonymousHandle);
 
     const user = await prisma.user.create({
       data: {
         email,
         username,
+        anonymousHandle,
         passwordHash
       },
       select: {
         id: true,
         email: true,
         username: true,
+        anonymousHandle: true,
         avatarUrl: true,
         bio: true,
         isVerified: true,

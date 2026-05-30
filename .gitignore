@@ -39,6 +39,9 @@ Thumbs.db
 .cache/
 nul
 
+# Local portable Postgres (dev only)
+.localdb/
+
 # Prisma
 prisma/migrations/
 

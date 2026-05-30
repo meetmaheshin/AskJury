@@ -2,6 +2,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as GitHubStrategy } from 'passport-github2';
 import { PrismaClient } from '@prisma/client';
+import { generateUniqueHandle } from '../utils/handleGenerator.js';
 
 const prisma = new PrismaClient();
 
@@ -62,11 +63,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 
         // Create new user
         const username = profile.emails[0].value.split('@')[0] + '_' + profile.id.slice(-4);
+        const anonymousHandle = await generateUniqueHandle(prisma);
 
         user = await prisma.user.create({
           data: {
             email: profile.emails[0].value,
             username: username,
+            anonymousHandle,
             googleId: profile.id,
             authProvider: 'google',
             isVerified: true,
@@ -132,11 +135,13 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
 
         // Create new user
         const username = profile.username || email.split('@')[0] + '_gh' + profile.id.toString().slice(-4);
+        const anonymousHandle = await generateUniqueHandle(prisma);
 
         user = await prisma.user.create({
           data: {
             email,
             username,
+            anonymousHandle,
             githubId: profile.id.toString(),
             authProvider: 'github',
             isVerified: true,

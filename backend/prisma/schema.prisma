@@ -11,6 +11,8 @@ model User {
   id            String    @id @default(uuid())
   email         String    @unique
   username      String    @unique
+  // Public-facing anonymous identity. The username/email are NEVER exposed publicly.
+  anonymousHandle String  @unique @map("anonymous_handle")
   passwordHash  String?   @map("password_hash") // Optional for OAuth users
   avatarUrl     String?   @map("avatar_url")
   bio           String?
@@ -34,27 +36,42 @@ model User {
 
   cases        Case[]
   votes        Vote[]
+  reactions    Reaction[]
   comments     Comment[]
   reports      Report[]
 
   @@map("users")
 }
 
+// Companies people rant about. Created on-demand when a post tags a company.
+model Company {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  domain      String?  @unique
+  logoUrl     String?  @map("logo_url")
+  industry    String?
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  cases       Case[]
+
+  @@index([slug])
+  @@map("companies")
+}
+
 enum CaseCategory {
-  ROOMMATE_DISPUTES
-  RELATIONSHIP_ISSUES
-  WORKPLACE_CONFLICTS
-  FAMILY_DRAMA
-  FRIEND_DISAGREEMENTS
-  MONEY_PAYMENTS
-  NEIGHBOR_CONFLICTS
-  SPORTS_EVENTS
-  TRAVEL_DISPUTES
-  CULTURAL_EVENTS
-  SOCIAL_MEDIA
-  SHOPPING_CONSUMER
-  ENTERTAINMENT
-  POLITICS
+  TOXIC_MANAGEMENT
+  BAD_BOSS
+  COWORKER_DRAMA
+  PAY_AND_PROMOTION
+  JOB_SECURITY
+  WORK_LIFE_BALANCE
+  HR_ISSUES
+  OFFICE_POLITICS
+  RETURN_TO_OFFICE
+  WORK_CULTURE
   OTHER
 }
 
@@ -62,6 +79,19 @@ enum CaseStatus {
   ACTIVE
   CLOSED
   REMOVED
+}
+
+// VENT = pure rant, reactions only. JUDGE = put it to the jury, two-sided vote + verdict.
+enum PostType {
+  VENT
+  JUDGE
+}
+
+// Who/what a post is aimed at.
+enum TargetType {
+  COMPANY
+  PERSON
+  GENERAL
 }
 
 enum Verdict {
@@ -82,9 +112,16 @@ model Case {
   title          String
   description    String       @db.Text
   category       CaseCategory
+  postType       PostType     @default(JUDGE) @map("post_type")
+
+  // Subject of the rant
+  targetType     TargetType   @default(GENERAL) @map("target_type")
+  targetName     String?      @map("target_name") // free text, e.g. "my manager" or a typed company name
+  companyId      String?      @map("company_id")
+
   mediaUrls      Json         @default("[]") @map("media_urls")
-  sideALabel     String       @default("You're Right") @map("side_a_label")
-  sideBLabel     String       @default("You're Wrong") @map("side_b_label")
+  sideALabel     String       @default("You're valid") @map("side_a_label")
+  sideBLabel     String       @default("You're overreacting") @map("side_b_label")
   status         CaseStatus   @default(ACTIVE)
   closedAt       DateTime?    @map("closed_at")
   closureType    ClosureType? @map("closure_type")
@@ -95,11 +132,15 @@ model Case {
   updatedAt      DateTime     @updatedAt @map("updated_at")
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company     Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
   votes       Vote[]
+  reactions   Reaction[]
   comments    Comment[]
 
   @@index([userId])
+  @@index([companyId])
   @@index([category])
+  @@index([postType])
   @@index([createdAt])
   @@index([status])
   @@index([closedAt])
@@ -126,6 +167,32 @@ model Vote {
   @@index([caseId])
   @@index([userId])
   @@map("votes")
+}
+
+// Lightweight reactions for VENT posts (no verdict, just "I feel you").
+enum ReactionType {
+  RELATABLE
+  BOSS_WRONG
+  OVERREACTING
+  SAME_HERE
+  RUN
+}
+
+model Reaction {
+  id        String       @id @default(uuid())
+  caseId    String       @map("case_id")
+  userId    String       @map("user_id")
+  type      ReactionType
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  case      Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([caseId, userId])
+  @@index([caseId])
+  @@index([userId])
+  @@map("reactions")
 }
 
 model Comment {

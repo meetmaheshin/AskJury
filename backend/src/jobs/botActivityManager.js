@@ -1,176 +1,181 @@
 import { PrismaClient } from '@prisma/client';
 import { generateAICase } from '../services/perplexityCaseGenerator.js';
+import { findOrCreateCompany } from '../utils/companies.js';
+import { CATEGORY_VALUES, REACTION_TYPES } from '../utils/constants.js';
 
 const prisma = new PrismaClient();
 
-// Case topics and descriptions for bot-generated content
+// Workplace-rant case templates, keyed by the CaseCategory enum in schema.prisma.
+// Each post is either a JUDGE (two-sided vote) or a VENT (reactions only).
 const caseTemplates = [
   {
-    category: 'ROOMMATE_DISPUTES',
+    category: 'TOXIC_MANAGEMENT',
     templates: [
-      { title: 'Roommate keeps eating my food without asking', description: 'My roommate has been taking my food from the fridge without permission. I labeled everything clearly, but they still help themselves. They say I\'m being petty because "we\'re roommates" and should share. Am I wrong for being upset about this?' },
-      { title: 'Roommate refuses to clean shared bathroom', description: 'I live with someone who never cleans the bathroom we share. I\'ve asked multiple times, but they say they\'re "too busy" with work. I end up cleaning it every time because I can\'t stand the mess. Should they pay more rent since I\'m doing all the cleaning?' },
-      { title: 'Roommate has guests over every weekend', description: 'My roommate invites friends over every Friday and Saturday night until 2-3 AM. The noise makes it hard for me to sleep, and I have work in the morning. They say it\'s their place too and I should just deal with it. Who\'s in the wrong here?' },
-      { title: 'Roommate doesn\'t pay utilities on time', description: 'Every month I have to chase my roommate for their share of electricity and internet bills. They always have excuses and say I\'m being too strict about deadlines. I\'m tired of fronting the money. Should I just add it to next month\'s rent?' },
-      { title: 'Roommate uses my Netflix account for their friends', description: 'I pay for Netflix and gave my roommate access. Now they\'ve shared the password with their friends and family. My account is maxed out and I can\'t even watch. They say I\'m being selfish since "streaming is meant to be shared."' },
-      { title: 'Roommate keeps thermostat too cold/hot', description: 'My roommate insists on keeping the AC at 18°C in summer. I\'m freezing all the time. When I adjust it, they change it back and say they\'re paying half so they get a say. How do we compromise?' }
-    ]
+      { title: 'My manager takes credit for my work in every leadership meeting', description: 'I build the decks, run the numbers, and ship the projects. In front of the VPs my manager says "I put this together." When I raised it 1:1 they called me "not a team player." Do I escalate to skip-level or just start documenting everything?' },
+      { title: 'Manager schedules "urgent" calls 10 minutes before end of day, daily', description: 'Every single day around 5:50pm my manager drops a "quick sync" that runs 40 minutes. It is never urgent. I have stopped making evening plans entirely. Am I overreacting for wanting to log off on time?' },
+      { title: 'Boss publicly criticizes people in the team channel', description: 'Our manager posts call-outs in the public team channel — names, mistakes, the works. Morale is in the floor. HR says "give direct feedback to your manager." How is that supposed to work when the manager IS the problem?' },
+    ],
   },
   {
-    category: 'RELATIONSHIP_ISSUES',
+    category: 'BAD_BOSS',
     templates: [
-      { title: 'Partner wants to split bills 50/50 despite income difference', description: 'I make $80k/year and my partner makes $45k/year. They insist on splitting all bills and rent exactly 50/50. I suggested splitting proportionally to our incomes, but they say that\'s not fair. What\'s the right approach here?' },
-      { title: 'Partner checks my phone without permission', description: 'My partner occasionally picks up my phone and reads my messages when I\'m in the shower or sleeping. When I confronted them, they said if I have nothing to hide, it shouldn\'t be a problem. Is this normal in relationships?' },
-      { title: 'Partner forgot our anniversary', description: 'My partner completely forgot our 2-year anniversary. No card, no gift, nothing. When I brought it up, they said anniversaries aren\'t that important and I\'m making a big deal out of nothing. Am I overreacting?' },
-      { title: 'Partner refuses to meet my friends', description: 'My partner always makes excuses to avoid meeting my friend group. They say they\'re introverted and need alone time. But they hang out with their own friends all the time. This has been going on for 8 months.' },
-      { title: 'Partner wants separate bank accounts after marriage', description: 'We\'re getting married soon and my partner insists on keeping completely separate finances. They don\'t want a joint account at all. I feel like marriage should mean sharing everything. Are separate accounts a red flag?' },
-      { title: 'Partner follows their ex on social media', description: 'My partner still follows their ex on Instagram and likes their posts occasionally. When I asked them to unfollow, they said I\'m being insecure and controlling. They broke up 3 years ago. Am I wrong to feel uncomfortable?' }
-    ]
+      { title: 'My boss texts me on weekends and expects replies within the hour', description: 'No on-call rotation, no overtime, just a manager who treats Saturday like a workday. Last weekend I ignored a 9pm message and got a passive-aggressive "noticed you went dark" on Monday. Setting boundaries or being difficult?' },
+      { title: 'Boss denied my leave then posted from the same resort I asked off for', description: 'I requested 3 days off months ago. Denied, "too busy." Then my boss is on Instagram at the exact beach resort I mentioned, during my denied dates. I am fuming. Worth bringing up or let it go?' },
+      { title: 'New boss reversed every process and blames us when it breaks', description: 'Six weeks in, our new boss scrapped the workflows that worked, pushed their own, and now that things are missing deadlines it is somehow "the team executing poorly." Vent. I am so tired.' },
+    ],
   },
   {
-    category: 'WORKPLACE_CONFLICTS',
+    category: 'COWORKER_DRAMA',
     templates: [
-      { title: 'Coworker takes credit for my ideas in meetings', description: 'During team meetings, my coworker often presents ideas we discussed privately as their own. When I mention it, they say we "collaborated" on it. It\'s happened three times now. Should I say something to my manager?' },
-      { title: 'Boss expects me to work weekends without extra pay', description: 'My boss has been asking me to work Saturdays "to meet deadlines" but doesn\'t offer overtime pay or time off in exchange. When I asked about compensation, they said I\'m "not a team player." Is this acceptable?' },
-      { title: 'Colleague microwaves fish in office kitchen', description: 'A coworker heats up fish in the microwave every day for lunch. The smell fills the entire office. Several people have complained, but they say they have a right to eat what they want. Who\'s right here?' },
-      { title: 'Coworker plays music without headphones', description: 'My desk neighbor plays Spotify out loud all day at low volume. It\'s not super loud but I can hear it constantly. When I asked them to use headphones, they got offended and said the office allows music. Who\'s being unreasonable?' },
-      { title: 'Manager scheduled meeting during my lunch break', description: 'My manager keeps scheduling "quick" 30-minute meetings during my 12-1 PM lunch break. When I said I prefer to keep that time free, they said everyone needs to be flexible. Should I push back harder?' },
-      { title: 'Colleague always asks me to cover their shift', description: 'The same coworker asks me to cover their shift at least twice a month. They always have "emergencies" but I see them posting on social media having fun. I feel guilty saying no. Should I stop helping?' }
-    ]
+      { title: 'Coworker microwaves fish at their desk every single day', description: 'Open-plan office. Every lunch, fish. The whole floor smells. Three people asked nicely, HR sent a "be considerate" email, nothing changed. They say they "have a right to eat." Who is being unreasonable here?' },
+      { title: 'A coworker keeps "borrowing" my ideas in standup before I can speak', description: 'We sit next to each other. I mention an approach, and in standup they say it first, framed as theirs. I have started messaging ideas to my manager first with timestamps. Petty or smart?' },
+      { title: 'Coworker plays music out loud and gets offended when asked to use headphones', description: 'Low volume but constant, all day. I asked once, politely. They said "the office allows it" and now act cold toward me. Am I the difficult one for wanting quiet to focus?' },
+    ],
   },
   {
-    category: 'FAMILY_DRAMA',
+    category: 'PAY_AND_PROMOTION',
     templates: [
-      { title: 'Parents expect me to pay their bills', description: 'I recently got a good job, and now my parents expect me to help pay their monthly bills. They say it\'s my duty as their child. I want to help, but it\'s affecting my ability to save. Am I being selfish?' },
-      { title: 'Sister borrows money and never pays back', description: 'My sister has borrowed money from me five times in the past year, totaling about $2000. She promises to pay back but never does. Now she\'s asking for more. Should I keep lending to family?' },
-      { title: 'In-laws visit without calling first', description: 'My in-laws drop by our house unannounced, sometimes as early as 8 AM on weekends. When I asked them to call first, they were offended and said "family doesn\'t need permission." Am I wrong to want notice?' },
-      { title: 'Brother wants to borrow my car every weekend', description: 'My younger brother keeps asking to borrow my car for weekend trips. He has his own car but says mine is "nicer." Last time he returned it with an empty tank and a scratch. Should I say no?' },
-      { title: 'Parents favor my sibling over me', description: 'My parents helped my sister with a down payment for her house but refused to help me with mine. They say she "needed it more" even though I asked first. I feel like I\'ve always been the second choice.' },
-      { title: 'Family expects me to host every holiday', description: 'For the past 5 years, I\'ve hosted Thanksgiving and Christmas for my extended family. When I suggested rotating to someone else\'s house, they said my place is biggest and I\'m being selfish. I\'m exhausted.' }
-    ]
+      { title: 'I trained the new hire who got promoted above me six months later', description: 'I onboarded them, reviewed their work, covered their mistakes. They got the senior title and the raise in the last cycle. I got "keep it up." I am still here doing the same job for less. Should I just leave?' },
+      { title: 'Found out a junior on my team makes more than me after 4 years here', description: 'Pay transparency leak in a shared sheet. Someone hired last year, less scope, makes 12% more than me. Loyalty tax is real. Do I walk into my manager with this or pretend I never saw it?' },
+      { title: 'Promised a promotion "next quarter" for two years running', description: 'Every review: "you are basically there, let us formalize next quarter." Three next-quarters have passed. I keep taking on the senior work without the senior pay. Venting before I do something dramatic.' },
+    ],
   },
   {
-    category: 'FRIEND_DISAGREEMENTS',
+    category: 'JOB_SECURITY',
     templates: [
-      { title: 'Friend always cancels plans last minute', description: 'My friend cancels on me about 70% of the time, usually an hour before we\'re supposed to meet. They always have an excuse. I told them it\'s frustrating, and they said I\'m being too demanding of their time. Am I?' },
-      { title: 'Friend never pays when we go out', description: 'Every time we eat out together, my friend "forgets" their wallet or says they\'ll "get it next time." This has happened at least 10 times. Should I stop inviting them or bring it up?' },
-      { title: 'Friend posted unflattering photo of me', description: 'My friend posted a terrible photo of me on social media without asking. I requested they take it down, but they said I\'m being vain and it\'s "not that bad." Should they have asked first?' },
-      { title: 'Friend invited my ex to group hangout', description: 'My friend invited my ex to our group outing without asking me first. We had a messy breakup 6 months ago. My friend says I can\'t control who they invite and I need to "be mature about it."' },
-      { title: 'Friend keeps trying to set me up on dates', description: 'My friend constantly tries to set me up with people I\'m not interested in. I\'ve said no many times but they keep pushing, saying I\'m "too picky." It\'s getting annoying. How do I make them stop?' },
-      { title: 'Friend never responds to my messages', description: 'My friend takes 2-3 days to respond to my texts but posts on Instagram constantly. When I mentioned it, they said they\'re "bad at texting." But they reply to others immediately. Am I not a priority?' }
-    ]
+      { title: 'Layoffs announced by email at 6am, then a "business as usual" all-hands at 9', description: 'Half the team got the email. The survivors got a peppy all-hands telling us to "stay focused and energized." I cannot focus. I am updating my resume between meetings. Anyone else just numb?' },
+      { title: 'Should I tell my teammate their role is being cut before HR does?', description: 'I accidentally saw the reorg doc. My closest work friend is on the cut list and has no idea, they just signed a lease. If I warn them I could get fired. If I do not, I feel like a coward. What would you do?' },
+      { title: 'They replaced laid-off staff with contractors and call it "efficiency"', description: 'Same work, half the people, now propped up by contractors who do not know the systems. Leadership calls it a "leaner model." It is just us doing three jobs. Pure vent.' },
+    ],
   },
   {
-    category: 'MONEY_PAYMENTS',
+    category: 'WORK_LIFE_BALANCE',
     templates: [
-      { title: 'Split dinner bill evenly when I ordered less', description: 'At dinner with friends, everyone wanted to split the bill evenly. I only had a salad ($12) while others had steaks and drinks ($40-50). I suggested paying separately, and they said I was being cheap. Who\'s right?' },
-      { title: 'Friend wants me to pay for their concert ticket', description: 'I invited my friend to a concert, and now they expect me to pay for their ticket because I "invited them." I thought we\'d each pay our own way. Should the person who invites always pay?' },
-      { title: 'Venmo request for $3 coffee', description: 'A friend Venmo requested me $3.50 for a coffee they grabbed for me two weeks ago. I didn\'t ask them to get it, they offered. Is it petty to request such a small amount after so long?' },
-      { title: 'Group trip cost split unfairly', description: 'We booked an Airbnb for 6 people. Two couples took the master bedrooms and want to split cost evenly. I got the couch in the living room. Shouldn\'t couples pay more for private rooms?' },
-      { title: 'Friend wants to use my discount without buying anything', description: 'I get a 30% employee discount at a store. My friend wants me to buy stuff for them using my discount even though I\'m not buying anything. The store prohibits this. They\'re calling me selfish.' },
-      { title: 'Sibling expects me to pay for family gifts', description: 'Every birthday and holiday, my sibling suggests we go in together on gifts for family. But they never have money and I end up paying 80%. They still sign the card as "from both of us." Is this fair?' }
-    ]
+      { title: 'I took my first real vacation in two years and got called twice on day one', description: 'Approved leave, handover doc written, backup assigned. Day one of the trip, two "just one quick thing" calls. I answered. I hate that I answered. How do you actually disconnect?' },
+      { title: 'Burnt out so badly I cried in the office bathroom — is this normal now?', description: 'Back-to-back meetings, lunch at the desk, work bleeding into every evening. Today it just broke me. Everyone acts like this grind is the baseline. Tell me I am not crazy for thinking it should not be.' },
+      { title: 'Team treats taking lunch away from the desk like a personal insult', description: 'I block 30 minutes to actually eat. I get "must be nice" comments and meeting invites dropped right on it. Defending my lunch break should not be this hard. Vent.' },
+    ],
   },
   {
-    category: 'OTHER',
+    category: 'HR_ISSUES',
     templates: [
-      // International/Global cases
-      { title: 'Neighbor plays loud music at 2 AM every night', description: 'My upstairs neighbor blasts music until 2-3 AM on weekdays. I have to wake up at 6 AM for work. I\'ve asked them politely twice, but they say I\'m being too sensitive and "it\'s not that loud." Should I call the landlord?' },
-      { title: 'Friend borrowed €500 six months ago, still hasn\'t paid back', description: 'I lent my close friend €500 for an emergency six months ago. They promised to pay back in 2 months. Now they avoid the topic and act like nothing happened. Should I bring it up again or let it go?' },
-      { title: 'Restaurant charged me for meal I didn\'t order', description: 'At a restaurant, I ordered the vegetarian pasta. The bill included a €25 steak I never ordered or received. When I pointed it out, the waiter insisted I must have ordered it. They refused to remove it. Should I have paid?' },
-      { title: '¿Debo dejar mi trabajo por la salud mental? | Should I quit my job for mental health?', description: 'Mi trabajo paga bien pero me está afectando mentalmente. Trabajo 60+ horas por semana y mi jefe me contacta los fines de semana. Mis amigos dicen que deje el trabajo, mi familia dice que aguante por el dinero.\n\nMy job pays well but it\'s affecting me mentally. I work 60+ hours per week and my boss contacts me on weekends. My friends say quit, my family says stick it out for the money. What should I do?' },
-      { title: 'Friend keeps bringing their dog everywhere without asking', description: 'My friend brings their large dog to my apartment every time they visit, without asking first. I\'m allergic and have asked them to leave the dog at home. They say their dog has "separation anxiety" and I\'m being unreasonable. Who\'s right?' },
-      { title: 'Taxi driver took longer route and charged extra ¥500', description: 'I took a taxi from the airport. I know the route should take 20 minutes and cost ¥200. The driver took backstreets for 40 minutes and charged ¥700. When I questioned it, he got angry. Should I have refused to pay?' }
-    ]
-  }
+      { title: 'I reported a real issue to HR and somehow I became the problem', description: 'Filed a complaint with evidence. Two weeks later I am the one in a "coaching conversation" about being "negative." HR is there to protect the company, not me. How do I protect myself now?' },
+      { title: 'HR scheduled my "confidential" complaint review with the person I complained about', description: 'I raised something about my manager. HR set up a "resolution meeting" — and invited the manager. So much for confidential. I have lost all trust. What are my options?' },
+      { title: 'Return-to-office mandate dropped the week after I relocated with HR approval', description: 'HR approved my remote move in writing. I relocated. Seven days later: "everyone back 4 days a week." Now I am the exception nobody will own. Am I wrong to demand they honor the agreement?' },
+    ],
+  },
+  {
+    category: 'OFFICE_POLITICS',
+    templates: [
+      { title: 'The loudest person on my team gets credit while the quiet ones carry it', description: 'Visibility is everything here. The person who talks most in meetings is "high performing"; those of us actually shipping get overlooked. Do I learn to play the game or find a place that values output?' },
+      { title: 'Two senior managers are feuding and my project is the battleground', description: 'Their personal turf war means every decision gets reversed depending on who is in the room. My project has restarted three times. I just want to do the work. Vent.' },
+      { title: 'Excluded from the meeting where my own project was decided', description: 'A "small group" met about the project I lead and made calls without me, then forwarded the notes. This is the third time. Am I being pushed out or am I being paranoid?' },
+    ],
+  },
+  {
+    category: 'RETURN_TO_OFFICE',
+    templates: [
+      { title: 'RTO mandate, but I commute 90 minutes to sit on video calls all day', description: 'Everyone I work with is in other cities. I drive 3 hours round-trip to take the same Zoom calls I took from home, just in a louder room. How is this productivity? Am I wrong to push back hard?' },
+      { title: 'They cut remote work but did not add enough desks for everyone', description: 'Mandatory 4 days in office. There are not enough seats, so we hot-desk and fight for monitors. I spent 20 minutes today just finding somewhere to sit. Pure vent.' },
+      { title: 'Manager counts "badge swipes" but ignores what we actually deliver', description: 'Performance is now measured by how often my badge hits the door, not output. People badge in and work from the cafe. The metric is theater. Should I just play along?' },
+    ],
+  },
+  {
+    category: 'WORK_CULTURE',
+    templates: [
+      { title: 'Every Friday is "mandatory fun" and skipping it is held against you', description: 'Forced happy hours, themed dress days, a Slack channel of forced enthusiasm. Opt out once and you are "not a culture fit." I just want to do my job and go home. Am I the problem?' },
+      { title: '"We are a family here" — until you ask about overtime pay', description: 'Family rhetoric all over the walls and onboarding. The moment you set a boundary or ask about comp, suddenly it is strictly business. The double standard is exhausting. Vent.' },
+      { title: 'New CEO sent a "work harder" memo from their third vacation home', description: 'Company-wide email about "hunger" and "doing whatever it takes," signed off from what is visibly a luxury getaway. The room read is catastrophic. Tell me I am right to be annoyed.' },
+    ],
+  },
 ];
 
+// Companies bots occasionally tag a rant at (created on-demand via findOrCreateCompany).
+const COMPANY_POOL = [
+  'Amazon', 'Google', 'Meta', 'Microsoft', 'Tesla', 'Infosys', 'TCS', 'Wipro',
+  'Accenture', 'Deloitte', 'IBM', 'Oracle', 'Salesforce', 'Uber', 'Netflix',
+  'Cognizant', 'Capgemini', 'JPMorgan', 'Goldman Sachs', 'PwC',
+];
+
+// Free-text targets for PERSON-aimed rants.
+const PERSON_TARGETS = ['my manager', 'my boss', 'my coworker', 'my team lead', 'HR', 'my skip-level'];
+
+// Workplace-themed comments bots leave on cases.
 const commentTemplates = [
-  'You\'re definitely right in this situation.',
-  'I can see both sides, but I think you handled it well.',
-  'Have you tried talking to them about it?',
-  'This is a tough one. I would probably do the same thing.',
-  'I disagree. I think you should consider their perspective.',
-  'Been in a similar situation. It doesn\'t get better unless you address it.',
-  'You need to set better boundaries here.',
-  'This is pretty common actually. Don\'t stress too much.',
-  'I think you\'re overreacting a bit, to be honest.',
-  'Stand your ground. You\'re not wrong.',
-  'Maybe there\'s a compromise you haven\'t considered?',
-  'Communication is key in situations like this.',
-  'I would be upset too if I were in your position.',
-  'Have you considered their side of things?',
-  'This is tricky. Good luck figuring it out!',
-  'NTA. They\'re clearly in the wrong here.',
-  'YTA. You should apologize and move on.',
-  'This sounds like a communication breakdown on both sides.',
-  'Set firm boundaries and stick to them. Don\'t back down.',
-  'Honestly, I think you\'re both being a bit unreasonable.',
-  'Have you thought about the long-term implications of this?',
-  'Sometimes you just have to let it go for your own peace of mind.',
-  'Document everything. You might need it later.',
-  'Trust your gut. If something feels off, it probably is.',
-  'This is a red flag. Proceed with caution.',
-  'You deserve better treatment than this.',
-  'I\'d distance myself from this situation if I were you.',
-  'They\'re gaslighting you. Don\'t let them.',
-  'Sounds like you need to have a serious conversation.',
-  'Cut them off. Life is too short for this drama.',
-  'Give them one more chance, but make your expectations clear.',
-  'This is totally normal. Don\'t beat yourself up.',
-  'You\'re being too nice. Time to stand up for yourself.',
-  'I see where they\'re coming from, actually.',
-  'This requires a mature, calm discussion between adults.',
-  'Some people just don\'t change. Accept it or move on.',
-  'You did the right thing by bringing it up.',
-  'This is a dealbreaker for me. How about you?',
-  'Therapy might help you both work through this.',
-  'You\'re not crazy for feeling this way.',
-  // International/multilingual comments
-  'I agree 100%. You did the right thing.',
-  'From my experience in Europe, this would be unacceptable.',
-  'In my culture, we handle this differently but I see your point.',
-  'Totalmente de acuerdo | Totally agree',
-  'This happens everywhere, not just your country.',
-  'Legal advice might be needed here, depending on where you live.',
-  'Cultural differences aside, this is just wrong.',
-  'I\'m from Asia and we face similar issues here.',
-  'Universal problem. You\'re not alone in this.',
-  'Different countries, same drama 😅'
+  'Document everything. Dates, screenshots, emails. You will want a paper trail.',
+  'This is a classic case of a manager protecting themselves. You are not wrong.',
+  'Been there. Set the boundary once, clearly, in writing, and hold it.',
+  'Honestly? Start applying. A culture that does this will not change for you.',
+  'Take it to skip-level. Your manager is not going to fix the thing they created.',
+  'You are not overreacting. This is exactly the kind of thing that burns people out.',
+  'HR works for the company, not for you. Protect yourself first.',
+  'I would loop in a neutral senior person before going to HR.',
+  'Quiet quitting was invented for situations exactly like this.',
+  'Your output is not the problem here. The visibility game is rigged.',
+  'NTA. Reply-all the next time they take credit, politely, with the receipts.',
+  'Respectfully, you might be reading too much into one bad week. Give it a beat.',
+  'Counterpoint: did you actually tell them directly, or just hint? Be explicit first.',
+  'This screams "leave before it gets worse." Update the resume tonight.',
+  'Set an auto-responder after 6pm and just... stop replying. They will adapt.',
+  'Comp transparency exists for this exact reason. Walk in with market data.',
+  'RTO with no desks is peak corporate theater. You are valid.',
+  'Loyalty tax is real. The fastest raise is usually a new offer.',
+  'Keep it professional, keep it documented, and keep your options open.',
+  'I have seen this exact thing end in a constructive-dismissal claim. Know your rights.',
+  'Take the PTO. Turn off notifications. The work will survive without you.',
+  'Sounds like a manager problem, not a you problem.',
+  'Play the game just enough to stay safe while you line up the exit.',
+  'You owe them work, not your evenings. Log off.',
+  'Talk to a couple of trusted peers — bet you are not the only one feeling this.',
 ];
 
-/**
- * Get random bot users for activity
- */
+/** Get random bot users for activity. */
 async function getRandomBots(count = 1) {
   const bots = await prisma.user.findMany({
     where: { isBot: true },
-    select: { id: true, username: true }
+    select: { id: true, username: true },
   });
 
   if (bots.length === 0) return [];
 
-  // Shuffle and return random bots
   const shuffled = bots.sort(() => 0.5 - Math.random());
   return shuffled.slice(0, Math.min(count, bots.length));
 }
 
-/**
- * Generate a random case from templates
- */
-function getRandomCaseTemplate() {
-  const categoryData = caseTemplates[Math.floor(Math.random() * caseTemplates.length)];
-  const template = categoryData.templates[Math.floor(Math.random() * categoryData.templates.length)];
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-  return {
-    ...template,
-    category: categoryData.category
-  };
+/** Generate a random workplace case from templates. */
+function getRandomCaseTemplate() {
+  const categoryData = pick(caseTemplates);
+  const template = pick(categoryData.templates);
+  return { ...template, category: categoryData.category };
 }
 
-/**
- * Bot creates a new case
- */
+/** Decide post shape (VENT vs JUDGE) and who/what it targets. */
+function decorateCase(caseData) {
+  // Honor an AI-chosen postType; otherwise ~55% JUDGE, ~45% VENT.
+  const postType = caseData.postType === 'VENT' || caseData.postType === 'JUDGE'
+    ? caseData.postType
+    : Math.random() < 0.55 ? 'JUDGE' : 'VENT';
+
+  // Target: 30% a named company, 25% a person, rest general.
+  const roll = Math.random();
+  let targetType = 'GENERAL';
+  let targetName = null;
+  let companyName = null;
+  if (roll < 0.3) {
+    targetType = 'COMPANY';
+    companyName = pick(COMPANY_POOL);
+    targetName = companyName;
+  } else if (roll < 0.55) {
+    targetType = 'PERSON';
+    targetName = pick(PERSON_TARGETS);
+  }
+
+  return { ...caseData, postType, targetType, targetName, companyName };
+}
+
+/** Bot creates a new workplace case (AI-generated when possible, else a template). */
 async function botCreateCase() {
   try {
     const [bot] = await getRandomBots(1);
@@ -179,39 +184,49 @@ async function botCreateCase() {
       return null;
     }
 
-    // 70% chance: Use AI to generate case from trending topics
-    // 30% chance: Use template (fallback)
+    // 70% chance: AI-generated workplace rant. 30%: template fallback.
     const useAI = Math.random() < 0.7;
     let caseData = null;
 
     if (useAI && process.env.PERPLEXITY_API_KEY) {
-      console.log('🤖 Generating AI case from trending topics...');
+      console.log('🤖 Generating AI workplace case...');
       caseData = await generateAICase();
     }
 
-    // Fallback to templates if AI fails or 30% chance
     if (!caseData) {
-      const template = getRandomCaseTemplate();
-      caseData = {
-        title: template.title,
-        description: template.description,
-        category: template.category
-      };
+      caseData = getRandomCaseTemplate();
+    }
+
+    // Safety net: never insert a category the enum does not know about.
+    if (!CATEGORY_VALUES.includes(caseData.category)) {
+      caseData.category = 'OTHER';
+    }
+
+    const decorated = decorateCase(caseData);
+
+    // Resolve a company when the rant targets one.
+    let companyId = null;
+    if (decorated.companyName) {
+      const company = await findOrCreateCompany(prisma, decorated.companyName);
+      if (company) companyId = company.id;
     }
 
     const newCase = await prisma.case.create({
       data: {
         userId: bot.id,
-        title: caseData.title,
-        description: caseData.description,
-        category: caseData.category,
-        sideALabel: 'You\'re Right',
-        sideBLabel: 'You\'re Wrong'
-      }
+        title: decorated.title,
+        description: decorated.description,
+        category: decorated.category,
+        postType: decorated.postType,
+        targetType: companyId ? 'COMPANY' : decorated.targetType,
+        targetName: decorated.targetName,
+        companyId,
+        // Side labels only matter for JUDGE; let the schema defaults stand otherwise.
+      },
     });
 
     const source = useAI && caseData ? '🤖 AI' : '📋 Template';
-    console.log(`✅ Bot ${bot.username} created case (${source}): "${caseData.title.substring(0, 50)}..."`);
+    console.log(`✅ Bot ${bot.username} created ${decorated.postType} case (${source}): "${decorated.title.substring(0, 50)}..."`);
     return newCase;
   } catch (error) {
     console.error('❌ Error creating bot case:', error.message);
@@ -219,57 +234,40 @@ async function botCreateCase() {
   }
 }
 
-/**
- * Bot votes on a random active case
- */
+/** Bot votes on a random active JUDGE case (vent posts cannot be voted on). */
 async function botVoteOnCase() {
   try {
-    // Get random active cases
     const activeCases = await prisma.case.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: 'ACTIVE', postType: 'JUDGE' },
       take: 20,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
     if (activeCases.length === 0) {
-      console.log('⚠️  No active cases to vote on');
+      console.log('⚠️  No active JUDGE cases to vote on');
       return null;
     }
 
-    const randomCase = activeCases[Math.floor(Math.random() * activeCases.length)];
+    const randomCase = pick(activeCases);
     const [bot] = await getRandomBots(1);
-
     if (!bot) {
       console.log('⚠️  No bots available to vote');
       return null;
     }
 
-    // Check if bot already voted
     const existingVote = await prisma.vote.findUnique({
-      where: {
-        caseId_userId: {
-          caseId: randomCase.id,
-          userId: bot.id
-        }
-      }
+      where: { caseId_userId: { caseId: randomCase.id, userId: bot.id } },
     });
+    if (existingVote) return null; // already voted; let the next cycle pick another
 
-    if (existingVote) {
-      return await botVoteOnCase(); // Try another case
-    }
-
-    // Random vote (60% SIDE_A, 40% SIDE_B for slight bias)
+    // Slight bias toward "you're valid" — workplace ranters usually have the room.
     const side = Math.random() < 0.6 ? 'SIDE_A' : 'SIDE_B';
 
     const vote = await prisma.vote.create({
-      data: {
-        caseId: randomCase.id,
-        userId: bot.id,
-        side
-      }
+      data: { caseId: randomCase.id, userId: bot.id, side },
     });
 
-    console.log(`✅ Bot ${bot.username} voted ${side} on case: "${randomCase.title.substring(0, 40)}..."`);
+    console.log(`✅ Bot ${bot.username} voted ${side} on: "${randomCase.title.substring(0, 40)}..."`);
     return vote;
   } catch (error) {
     console.error('❌ Error creating bot vote:', error.message);
@@ -277,16 +275,52 @@ async function botVoteOnCase() {
   }
 }
 
-/**
- * Bot comments on a random active case
- */
+/** Bot reacts to a random active case (works for both VENT and JUDGE posts). */
+async function botReactOnCase() {
+  try {
+    const activeCases = await prisma.case.findMany({
+      where: { status: 'ACTIVE' },
+      take: 25,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (activeCases.length === 0) {
+      console.log('⚠️  No active cases to react to');
+      return null;
+    }
+
+    const randomCase = pick(activeCases);
+    const [bot] = await getRandomBots(1);
+    if (!bot) {
+      console.log('⚠️  No bots available to react');
+      return null;
+    }
+
+    const existing = await prisma.reaction.findUnique({
+      where: { caseId_userId: { caseId: randomCase.id, userId: bot.id } },
+    });
+    if (existing) return null; // one reaction per user per case
+
+    const type = pick(REACTION_TYPES);
+    const reaction = await prisma.reaction.create({
+      data: { caseId: randomCase.id, userId: bot.id, type },
+    });
+
+    console.log(`✅ Bot ${bot.username} reacted ${type} on: "${randomCase.title.substring(0, 40)}..."`);
+    return reaction;
+  } catch (error) {
+    console.error('❌ Error creating bot reaction:', error.message);
+    return null;
+  }
+}
+
+/** Bot comments on a random active case. */
 async function botCommentOnCase() {
   try {
-    // Get random active cases
     const activeCases = await prisma.case.findMany({
       where: { status: 'ACTIVE' },
       take: 20,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
     if (activeCases.length === 0) {
@@ -294,25 +328,22 @@ async function botCommentOnCase() {
       return null;
     }
 
-    const randomCase = activeCases[Math.floor(Math.random() * activeCases.length)];
+    const randomCase = pick(activeCases);
     const [bot] = await getRandomBots(1);
-
     if (!bot) {
       console.log('⚠️  No bots available to comment');
       return null;
     }
 
-    const commentText = commentTemplates[Math.floor(Math.random() * commentTemplates.length)];
-
     const comment = await prisma.comment.create({
       data: {
         caseId: randomCase.id,
         userId: bot.id,
-        content: commentText
-      }
+        content: pick(commentTemplates),
+      },
     });
 
-    console.log(`✅ Bot ${bot.username} commented on case: "${randomCase.title.substring(0, 40)}..."`);
+    console.log(`✅ Bot ${bot.username} commented on: "${randomCase.title.substring(0, 40)}..."`);
     return comment;
   } catch (error) {
     console.error('❌ Error creating bot comment:', error.message);
@@ -320,20 +351,13 @@ async function botCommentOnCase() {
   }
 }
 
-/**
- * Bot upvotes or downvotes a random comment
- */
+/** Bot upvotes or downvotes a random recent comment. */
 async function botVoteOnComment() {
   try {
-    // Get recent comments from active cases
     const recentComments = await prisma.comment.findMany({
-      where: {
-        case: {
-          status: 'ACTIVE'
-        }
-      },
+      where: { case: { status: 'ACTIVE' } },
       take: 30,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
     if (recentComments.length === 0) {
@@ -341,20 +365,18 @@ async function botVoteOnComment() {
       return null;
     }
 
-    const randomComment = recentComments[Math.floor(Math.random() * recentComments.length)];
-
-    // 70% upvote, 30% downvote (positive bias)
-    const isUpvote = Math.random() < 0.7;
+    const randomComment = pick(recentComments);
+    const isUpvote = Math.random() < 0.7; // positive bias
 
     const updatedComment = await prisma.comment.update({
       where: { id: randomComment.id },
       data: {
         upvotes: isUpvote ? { increment: 1 } : undefined,
-        downvotes: !isUpvote ? { increment: 1 } : undefined
-      }
+        downvotes: !isUpvote ? { increment: 1 } : undefined,
+      },
     });
 
-    console.log(`✅ Bot ${isUpvote ? 'upvoted' : 'downvoted'} comment`);
+    console.log(`✅ Bot ${isUpvote ? 'upvoted' : 'downvoted'} a comment`);
     return updatedComment;
   } catch (error) {
     console.error('❌ Error voting on comment:', error.message);
@@ -362,41 +384,34 @@ async function botVoteOnComment() {
   }
 }
 
-/**
- * Run random bot activity with realistic distribution
- */
+/** Run a single random bot activity with a realistic distribution. */
 async function runBotActivity() {
   console.log('\n🤖 Running bot activity cycle...');
 
-  // Realistic activity distribution:
-  // 15% chance: create case (less frequent)
-  // 35% chance: vote on case (most common)
-  // 30% chance: comment on case
-  // 20% chance: vote on comment (engagement)
-
+  // 15% create case, 25% vote (JUDGE), 20% react (VENT + JUDGE),
+  // 25% comment, 15% vote on a comment.
   const activity = Math.random();
 
   if (activity < 0.15) {
     await botCreateCase();
-  } else if (activity < 0.50) {
+  } else if (activity < 0.40) {
     await botVoteOnCase();
-  } else if (activity < 0.80) {
+  } else if (activity < 0.60) {
+    await botReactOnCase();
+  } else if (activity < 0.85) {
     await botCommentOnCase();
   } else {
     await botVoteOnComment();
   }
 }
 
-/**
- * Run multiple bot activities
- */
+/** Run multiple bot activities back to back. */
 async function runMultipleBotActivities(count = 3) {
   console.log(`\n🤖 Running ${count} bot activities...`);
 
   for (let i = 0; i < count; i++) {
     await runBotActivity();
-    // Small delay between activities
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
   console.log('✅ Bot activity cycle completed\n');
@@ -405,8 +420,9 @@ async function runMultipleBotActivities(count = 3) {
 export {
   botCreateCase,
   botVoteOnCase,
+  botReactOnCase,
   botCommentOnCase,
   botVoteOnComment,
   runBotActivity,
-  runMultipleBotActivities
+  runMultipleBotActivities,
 };

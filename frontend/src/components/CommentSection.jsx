@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
+import { authorName } from '../utils/categories';
 
 const CommentSection = ({ caseId, isOP, disabled = false }) => {
   const { user, isAuthenticated } = useAuth();
@@ -136,7 +137,7 @@ const CommentSection = ({ caseId, isOP, disabled = false }) => {
                 onClick={() => navigate(`/profile/${comment.user.id}`)}
                 className="font-medium text-white hover:text-primary"
               >
-                {comment.user.username}
+                {authorName(comment.user)}
               </button>
               {isOP && comment.user.id === user?.id && (
                 <span className="text-xs bg-primary text-white px-2 py-0.5 rounded">OP</span>

@@ -2,30 +2,22 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
+import { CATEGORIES } from '../utils/categories';
 
 const SubmitCase = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('OTHER');
-  const [sideALabel, setSideALabel] = useState("You're Right");
-  const [sideBLabel, setSideBLabel] = useState("You're Wrong");
+  const [category, setCategory] = useState(CATEGORIES[0].value);
+  const [postType, setPostType] = useState('JUDGE');
+  const [companyName, setCompanyName] = useState('');
+  const [sideALabel, setSideALabel] = useState("You're valid");
+  const [sideBLabel, setSideBLabel] = useState("You're overreacting");
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const categories = [
-    { value: 'POLITICS', label: 'Politics' },
-    { value: 'ROOMMATE_DISPUTES', label: 'Roommate Disputes' },
-    { value: 'RELATIONSHIP_ISSUES', label: 'Relationship Issues' },
-    { value: 'WORKPLACE_CONFLICTS', label: 'Workplace Conflicts' },
-    { value: 'FAMILY_DRAMA', label: 'Family Drama' },
-    { value: 'FRIEND_DISAGREEMENTS', label: 'Friend Disagreements' },
-    { value: 'MONEY_PAYMENTS', label: 'Money & Payments' },
-    { value: 'OTHER', label: 'Other' },
-  ];
 
   if (!isAuthenticated) {
     navigate('/login');
@@ -58,13 +50,13 @@ const SubmitCase = () => {
     e.preventDefault();
     setError('');
 
-    if (title.length < 10 || title.length > 100) {
-      setError('Title must be between 10 and 100 characters');
+    if (title.length < 10 || title.length > 120) {
+      setError('Title must be between 10 and 120 characters');
       return;
     }
 
-    if (description.length < 20 || description.length > 1000) {
-      setError('Description must be between 20 and 1000 characters');
+    if (description.length < 20 || description.length > 2000) {
+      setError('Description must be between 20 and 2000 characters');
       return;
     }
 
@@ -75,8 +67,15 @@ const SubmitCase = () => {
       formData.append('title', title);
       formData.append('description', description);
       formData.append('category', category);
-      formData.append('sideALabel', sideALabel);
-      formData.append('sideBLabel', sideBLabel);
+      formData.append('postType', postType);
+      if (companyName.trim()) {
+        formData.append('companyName', companyName.trim());
+      }
+      // Side labels only matter for a "judge" (two-sided vote) post.
+      if (postType === 'JUDGE') {
+        formData.append('sideALabel', sideALabel);
+        formData.append('sideBLabel', sideBLabel);
+      }
 
       files.forEach((file) => {
         formData.append('media', file);
@@ -101,8 +100,8 @@ const SubmitCase = () => {
     <div className="min-h-screen bg-black py-8">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-gray-900 rounded-lg shadow-md p-6 border border-gray-800">
-          <h1 className="text-3xl font-bold text-white mb-2">Submit Your Case</h1>
-          <p className="text-gray-400 mb-6">Share your dispute and let the community decide who's right</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Get it off your chest</h1>
+          <p className="text-gray-400 mb-6">Rant about work. Vent for reactions, or put it to the jury for a verdict.</p>
 
           {error && (
             <div className="bg-red-900/30 border border-red-500 text-red-400 px-4 py-3 rounded-xl mb-4">
@@ -111,18 +110,49 @@ const SubmitCase = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Post type toggle */}
+            <div>
+              <label className="label">Post type</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPostType('VENT')}
+                  className={`p-4 rounded-xl border text-left transition-all ${
+                    postType === 'VENT'
+                      ? 'border-secondary bg-secondary/10 ring-2 ring-secondary/40'
+                      : 'border-gray-700 bg-gray-800/40 hover:border-gray-600'
+                  }`}
+                >
+                  <p className="font-bold text-white">😤 Vent</p>
+                  <p className="text-xs text-gray-400 mt-1">Just rant. People react, no verdict.</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPostType('JUDGE')}
+                  className={`p-4 rounded-xl border text-left transition-all ${
+                    postType === 'JUDGE'
+                      ? 'border-primary bg-primary/10 ring-2 ring-primary/40'
+                      : 'border-gray-700 bg-gray-800/40 hover:border-gray-600'
+                  }`}
+                >
+                  <p className="font-bold text-white">⚖️ Judge</p>
+                  <p className="text-xs text-gray-400 mt-1">Two sides. Let the jury vote who's right.</p>
+                </button>
+              </div>
+            </div>
+
             <div>
               <label htmlFor="title" className="label">
-                Title <span className="text-gray-500 text-sm">({title.length}/100)</span>
+                Title <span className="text-gray-500 text-sm">({title.length}/120)</span>
               </label>
               <input
                 type="text"
                 id="title"
                 className="input"
-                placeholder="Am I wrong for..."
+                placeholder="My manager just..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                maxLength={100}
+                maxLength={120}
                 required
               />
               <p className="text-xs text-gray-500 mt-1">Be clear and concise</p>
@@ -130,70 +160,89 @@ const SubmitCase = () => {
 
             <div>
               <label htmlFor="description" className="label">
-                Description <span className="text-gray-500 text-sm">({description.length}/1000)</span>
+                Description <span className="text-gray-500 text-sm">({description.length}/2000)</span>
               </label>
               <textarea
                 id="description"
                 className="input min-h-[200px]"
-                placeholder="Tell your story in detail..."
+                placeholder="Tell the story in detail..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                maxLength={1000}
+                maxLength={2000}
                 rows="8"
                 required
               />
               <p className="text-xs text-gray-500 mt-1">Include all relevant details</p>
             </div>
 
-            <div>
-              <label htmlFor="category" className="label">
-                Category
-              </label>
-              <select
-                id="category"
-                className="input"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                required
-              >
-                {categories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="category" className="label">
+                  Category
+                </label>
+                <select
+                  id="category"
+                  className="input"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  required
+                >
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.emoji} {cat.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="companyName" className="label">
+                  Company (optional)
+                </label>
+                <input
+                  type="text"
+                  id="companyName"
+                  className="input"
+                  placeholder="e.g. Acme Corp"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  maxLength={100}
+                />
+                <p className="text-xs text-gray-500 mt-1">Tag the company this is about</p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="sideALabel" className="label">
-                  Side A Label (Optional)
-                </label>
-                <input
-                  type="text"
-                  id="sideALabel"
-                  className="input"
-                  placeholder="You're Right"
-                  value={sideALabel}
-                  onChange={(e) => setSideALabel(e.target.value)}
-                  maxLength={50}
-                />
+            {postType === 'JUDGE' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="sideALabel" className="label">
+                    Side A Label
+                  </label>
+                  <input
+                    type="text"
+                    id="sideALabel"
+                    className="input"
+                    placeholder="You're valid"
+                    value={sideALabel}
+                    onChange={(e) => setSideALabel(e.target.value)}
+                    maxLength={50}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="sideBLabel" className="label">
+                    Side B Label
+                  </label>
+                  <input
+                    type="text"
+                    id="sideBLabel"
+                    className="input"
+                    placeholder="You're overreacting"
+                    value={sideBLabel}
+                    onChange={(e) => setSideBLabel(e.target.value)}
+                    maxLength={50}
+                  />
+                </div>
               </div>
-              <div>
-                <label htmlFor="sideBLabel" className="label">
-                  Side B Label (Optional)
-                </label>
-                <input
-                  type="text"
-                  id="sideBLabel"
-                  className="input"
-                  placeholder="You're Wrong"
-                  value={sideBLabel}
-                  onChange={(e) => setSideBLabel(e.target.value)}
-                  maxLength={50}
-                />
-              </div>
-            </div>
+            )}
 
             <div>
               <label htmlFor="media" className="label">
@@ -230,7 +279,7 @@ const SubmitCase = () => {
                 disabled={loading}
                 className="btn btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Submitting...' : 'Submit Case'}
+                {loading ? 'Posting...' : postType === 'VENT' ? 'Post Rant' : 'Submit to Jury'}
               </button>
               <button
                 type="button"

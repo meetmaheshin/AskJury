@@ -5,6 +5,7 @@ import api from '../utils/api';
 import CaseCard from '../components/CaseCard';
 import { HomePageSEO } from '../components/SEO';
 import TrendingMarquee from '../components/TrendingMarquee';
+import { CATEGORIES } from '../utils/categories';
 
 const Home = () => {
   const { isAuthenticated } = useAuth();
@@ -23,15 +24,8 @@ const Home = () => {
   const [stats, setStats] = useState({ totalCases: 0, totalVotes: 0, totalComments: 0 });
 
   const categories = [
-    { value: '', label: 'All Drama', emoji: '🔥' },
-    { value: 'POLITICS', label: 'Politics', emoji: '🏛️' },
-    { value: 'ROOMMATE_DISPUTES', label: 'Roommate War', emoji: '🏠' },
-    { value: 'RELATIONSHIP_ISSUES', label: 'Breakup Drama', emoji: '💔' },
-    { value: 'WORKPLACE_CONFLICTS', label: 'Work Beef', emoji: '💼' },
-    { value: 'FAMILY_DRAMA', label: 'Family Tea', emoji: '👨‍👩‍👧' },
-    { value: 'FRIEND_DISAGREEMENTS', label: 'Friend Betrayal', emoji: '🔪' },
-    { value: 'MONEY_PAYMENTS', label: 'Money Fight', emoji: '💸' },
-    { value: 'OTHER', label: 'Red Flags', emoji: '🚩' },
+    { value: '', label: 'All Rants', emoji: '🔥' },
+    ...CATEGORIES,
   ];
 
   useEffect(() => {

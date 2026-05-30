@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { getCategoryLabel, authorName, REACTIONS } from '../utils/categories';
 
 const CaseCard = ({ caseItem }) => {
   const [imageError, setImageError] = useState(false);
-  
+  const isVent = caseItem.postType === 'VENT';
+
   const formatTimeAgo = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
     let interval = seconds / 31536000;
@@ -18,20 +20,6 @@ const CaseCard = ({ caseItem }) => {
     interval = seconds / 60;
     if (interval > 1) return Math.floor(interval) + ' minutes ago';
     return Math.floor(seconds) + ' seconds ago';
-  };
-
-  const getCategoryLabel = (category) => {
-    const labels = {
-      POLITICS: 'Politics',
-      ROOMMATE_DISPUTES: 'Roommate Disputes',
-      RELATIONSHIP_ISSUES: 'Relationship Issues',
-      WORKPLACE_CONFLICTS: 'Workplace Conflicts',
-      FAMILY_DRAMA: 'Family Drama',
-      FRIEND_DISAGREEMENTS: 'Friend Disagreements',
-      MONEY_PAYMENTS: 'Money & Payments',
-      OTHER: 'Other',
-    };
-    return labels[category] || category;
   };
 
   const mediaUrls = Array.isArray(caseItem.mediaUrls)
@@ -73,10 +61,10 @@ const CaseCard = ({ caseItem }) => {
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 backdrop-blur-sm bg-black/20">
             <div className="flex items-center space-x-3">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm ring-2 ring-white/20">
-                {caseItem.user.username[0].toUpperCase()}
+                {authorName(caseItem.user).charAt(0).toUpperCase()}
               </div>
               <div>
-                <p className="font-semibold text-white text-sm drop-shadow-lg">{caseItem.user.username}</p>
+                <p className="font-semibold text-white text-sm drop-shadow-lg">{authorName(caseItem.user)}</p>
                 <p className="text-xs text-gray-300">{formatTimeAgo(caseItem.createdAt)}</p>
               </div>
             </div>
@@ -90,6 +78,9 @@ const CaseCard = ({ caseItem }) => {
                   {mediaUrls.length}
                 </div>
               )}
+              <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full border ${isVent ? 'bg-secondary/20 text-secondary border-secondary/30' : 'bg-primary/20 text-primary border-primary/30'}`}>
+                {isVent ? 'Vent' : 'Judge'}
+              </span>
               <span className="text-xs font-medium px-2.5 py-1 bg-white/10 backdrop-blur-md text-white rounded-full border border-white/20">
                 {getCategoryLabel(caseItem.category)}
               </span>
@@ -107,37 +98,56 @@ const CaseCard = ({ caseItem }) => {
             </p>
           </div>
 
-          {/* Voting bar - Glass effect */}
-          <div className="px-4 py-3 backdrop-blur-md bg-black/40 border-t border-white/10">
-            <div className="flex justify-between items-center text-xs font-medium mb-2">
-              <span className="text-green-400 flex items-center truncate max-w-[45%] drop-shadow">
-                <svg className="w-3.5 h-3.5 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
-                </svg>
-                <span className="truncate">{caseItem.sideALabel}</span>
-              </span>
-              <span className="text-red-400 flex items-center truncate max-w-[45%] drop-shadow">
-                <span className="truncate">{caseItem.sideBLabel}</span>
-                <svg className="w-3.5 h-3.5 ml-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M18 9.5a1.5 1.5 0 11-3 0v-6a1.5 1.5 0 013 0v6zM14 9.667v-5.43a2 2 0 00-1.105-1.79l-.05-.025A4 4 0 0011.055 2H5.64a2 2 0 00-1.962 1.608l-1.2 6A2 2 0 004.44 12H8v4a2 2 0 002 2 1 1 0 001-1v-.667a4 4 0 01.8-2.4l1.4-1.866a4 4 0 00.8-2.4z" />
-                </svg>
-              </span>
+          {/* Vent posts: reaction summary. Judge posts: vote bar. */}
+          {isVent ? (
+            <div className="px-4 py-3 backdrop-blur-md bg-black/40 border-t border-white/10">
+              <div className="flex items-center gap-2 text-base">
+                {REACTIONS.map((r) => {
+                  const count = caseItem.reactions?.[r.type] || 0;
+                  if (!count) return null;
+                  return (
+                    <span key={r.type} className="flex items-center text-xs text-gray-200 drop-shadow" title={r.label}>
+                      <span className="mr-0.5">{r.emoji}</span>{count}
+                    </span>
+                  );
+                })}
+                {!caseItem.totalReactions && (
+                  <span className="text-xs text-gray-400">Be the first to react 😮‍💨</span>
+                )}
+              </div>
             </div>
-            <div className="relative flex h-2 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
-              <div
-                className="bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
-                style={{ width: `${caseItem.sideAPercentage || 50}%` }}
-              />
-              <div
-                className="bg-gradient-to-r from-red-500 to-red-400 transition-all duration-500"
-                style={{ width: `${caseItem.sideBPercentage || 50}%` }}
-              />
+          ) : (
+            <div className="px-4 py-3 backdrop-blur-md bg-black/40 border-t border-white/10">
+              <div className="flex justify-between items-center text-xs font-medium mb-2">
+                <span className="text-green-400 flex items-center truncate max-w-[45%] drop-shadow">
+                  <svg className="w-3.5 h-3.5 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                  </svg>
+                  <span className="truncate">{caseItem.sideALabel}</span>
+                </span>
+                <span className="text-red-400 flex items-center truncate max-w-[45%] drop-shadow">
+                  <span className="truncate">{caseItem.sideBLabel}</span>
+                  <svg className="w-3.5 h-3.5 ml-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M18 9.5a1.5 1.5 0 11-3 0v-6a1.5 1.5 0 013 0v6zM14 9.667v-5.43a2 2 0 00-1.105-1.79l-.05-.025A4 4 0 0011.055 2H5.64a2 2 0 00-1.962 1.608l-1.2 6A2 2 0 004.44 12H8v4a2 2 0 002 2 1 1 0 001-1v-.667a4 4 0 01.8-2.4l1.4-1.866a4 4 0 00.8-2.4z" />
+                  </svg>
+                </span>
+              </div>
+              <div className="relative flex h-2 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
+                <div
+                  className="bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
+                  style={{ width: `${caseItem.sideAPercentage || 50}%` }}
+                />
+                <div
+                  className="bg-gradient-to-r from-red-500 to-red-400 transition-all duration-500"
+                  style={{ width: `${caseItem.sideBPercentage || 50}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs font-bold mt-1.5">
+                <span className="text-green-400 drop-shadow">{caseItem.sideAPercentage || 50}%</span>
+                <span className="text-red-400 drop-shadow">{caseItem.sideBPercentage || 50}%</span>
+              </div>
             </div>
-            <div className="flex justify-between text-xs font-bold mt-1.5">
-              <span className="text-green-400 drop-shadow">{caseItem.sideAPercentage || 50}%</span>
-              <span className="text-red-400 drop-shadow">{caseItem.sideBPercentage || 50}%</span>
-            </div>
-          </div>
+          )}
 
           {/* Footer with stats - Glass effect */}
           <div className="px-4 py-2.5 border-t border-white/10 flex items-center justify-between backdrop-blur-md bg-black/40">
@@ -146,7 +156,9 @@ const CaseCard = ({ caseItem }) => {
                 <svg className="w-4 h-4 mr-1 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {caseItem.voteCount || caseItem._count?.votes || 0}
+                {isVent
+                  ? (caseItem.totalReactions || 0)
+                  : (caseItem.voteCount || caseItem._count?.votes || 0)}
               </span>
               <span className="flex items-center font-medium">
                 <svg className="w-4 h-4 mr-1 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,7 +168,7 @@ const CaseCard = ({ caseItem }) => {
               </span>
             </div>
             <span className="text-primary font-semibold text-sm group-hover:text-white transition-colors">
-              Correct Them →
+              {isVent ? 'Read the rant →' : 'Cast your verdict →'}
             </span>
           </div>
         </div>

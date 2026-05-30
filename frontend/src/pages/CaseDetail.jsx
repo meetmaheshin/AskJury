@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import CommentSection from '../components/CommentSection';
 import VerdictBadge from '../components/VerdictBadge';
 import CloseCaseButton from '../components/CloseCaseButton';
+import { getCategoryLabel, authorName, REACTIONS } from '../utils/categories';
 
 const CaseDetail = () => {
   const { id } = useParams();
@@ -14,6 +15,7 @@ const CaseDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [voting, setVoting] = useState(false);
+  const [reacting, setReacting] = useState(false);
 
   useEffect(() => {
     fetchCase();
@@ -63,18 +65,23 @@ const CaseDetail = () => {
     }
   };
 
-  const getCategoryLabel = (category) => {
-    const labels = {
-      POLITICS: 'Politics',
-      ROOMMATE_DISPUTES: 'Roommate Disputes',
-      RELATIONSHIP_ISSUES: 'Relationship Issues',
-      WORKPLACE_CONFLICTS: 'Workplace Conflicts',
-      FAMILY_DRAMA: 'Family Drama',
-      FRIEND_DISAGREEMENTS: 'Friend Disagreements',
-      MONEY_PAYMENTS: 'Money & Payments',
-      OTHER: 'Other',
-    };
-    return labels[category] || category;
+  const handleReact = async (type) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    if (caseData?.status === 'CLOSED') return;
+
+    setReacting(true);
+    try {
+      await api.post(`/cases/${id}/react`, { type });
+      await fetchCase();
+    } catch (err) {
+      console.error('Error reacting:', err);
+      alert(err.response?.data?.error || 'Failed to react');
+    } finally {
+      setReacting(false);
+    }
   };
 
   const formatTimeAgo = (date) => {
@@ -121,6 +128,7 @@ const CaseDetail = () => {
   const isControversial = Math.abs((caseData.sideAPercentage || 50) - 50) <= 15;
   const isClosed = caseData.status === 'CLOSED';
   const isOwner = user?.id === caseData.userId;
+  const isVent = caseData.postType === 'VENT';
 
   return (
     <div className="min-h-screen bg-black py-6">
@@ -173,9 +181,23 @@ const CaseDetail = () => {
               {/* Header with Category & Time */}
               <div className="p-6 pb-4">
                 <div className="flex justify-between items-start mb-4">
-                  <span className="text-sm font-bold px-3 py-1.5 bg-gradient-to-r from-primary/20 to-secondary/20 text-primary rounded-full border border-primary/30">
-                    {getCategoryLabel(caseData.category)}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border ${isVent ? 'bg-secondary/20 text-secondary border-secondary/30' : 'bg-primary/20 text-primary border-primary/30'}`}>
+                      {isVent ? '😤 Vent' : '⚖️ Judge'}
+                    </span>
+                    <span className="text-sm font-bold px-3 py-1.5 bg-gradient-to-r from-primary/20 to-secondary/20 text-primary rounded-full border border-primary/30">
+                      {getCategoryLabel(caseData.category)}
+                    </span>
+                    {caseData.company ? (
+                      <span className="text-xs font-semibold px-2.5 py-1 bg-white/5 text-gray-200 rounded-full border border-white/10">
+                        🏢 {caseData.company.name}
+                      </span>
+                    ) : caseData.targetName ? (
+                      <span className="text-xs font-semibold px-2.5 py-1 bg-white/5 text-gray-200 rounded-full border border-white/10">
+                        🎯 {caseData.targetName}
+                      </span>
+                    ) : null}
+                  </div>
                   <div className="flex items-center space-x-2">
                     {isControversial && (
                       <span className="text-lg" title="Controversial! Close vote">🔥</span>
@@ -233,7 +255,7 @@ const CaseDetail = () => {
                       onClick={() => navigate(`/profile/${caseData.user.id}`)}
                       className="font-bold text-primary hover:underline"
                     >
-                      @{caseData.user.username}
+                      @{authorName(caseData.user)}
                     </button>
                   </div>
                   <button
@@ -260,7 +282,44 @@ const CaseDetail = () => {
                 </div>
               </div>
 
+              {/* Vent posts: react. Judge posts: vote. */}
+              {isVent && (
+                <div className="bg-gradient-to-br from-gray-800 to-gray-800/50 p-6 border-t border-gray-700">
+                  <h2 className="text-xl font-black mb-4 text-center flex items-center justify-center text-white">
+                    How do you feel about this?
+                    <span className="ml-2 text-2xl">😤</span>
+                  </h2>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {REACTIONS.map((r) => {
+                      const count = caseData.reactions?.[r.type] || 0;
+                      const active = caseData.userReaction === r.type;
+                      return (
+                        <button
+                          key={r.type}
+                          onClick={() => handleReact(r.type)}
+                          disabled={reacting || isClosed}
+                          className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
+                            active
+                              ? 'bg-gradient-to-br from-primary to-secondary text-white ring-2 ring-primary/50'
+                              : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                          }`}
+                          title={r.label}
+                        >
+                          <span className="text-xl">{r.emoji}</span>
+                          <span className="text-sm">{r.label}</span>
+                          {count > 0 && <span className="text-sm opacity-80">{count}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-center text-sm text-gray-400 mt-4 font-semibold">
+                    😮‍💨 {caseData.totalReactions || 0} {(caseData.totalReactions || 0) === 1 ? 'reaction' : 'reactions'}
+                  </p>
+                </div>
+              )}
+
               {/* Voting Section */}
+              {!isVent && (
               <div className="bg-gradient-to-br from-gray-800 to-gray-800/50 p-6 border-t border-gray-700">
                 <h2 className="text-xl font-black mb-4 text-center flex items-center justify-center text-white">
                   Correct Them
@@ -331,6 +390,7 @@ const CaseDetail = () => {
                   </p>
                 </div>
               </div>
+              )}
             </div>
           </div>
 

@@ -20,7 +20,7 @@ router.get('/case/:caseId', async (req, res) => {
         user: {
           select: {
             id: true,
-            username: true,
+            anonymousHandle: true,
             avatarUrl: true
           }
         },
@@ -100,7 +100,7 @@ router.post('/', authenticate, [
         user: {
           select: {
             id: true,
-            username: true,
+            anonymousHandle: true,
             avatarUrl: true
           }
         }
