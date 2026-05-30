@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
@@ -19,10 +19,11 @@ const SubmitCase = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  if (!isAuthenticated) {
-    navigate('/login');
-    return null;
-  }
+  useEffect(() => {
+    if (!isAuthenticated) navigate('/login');
+  }, [isAuthenticated, navigate]);
+
+  if (!isAuthenticated) return null;
 
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);

@@ -20,9 +20,12 @@ export async function autoCloseCases() {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+    // Only JUDGE posts get auto-closed with a verdict. VENT posts are reaction-only
+    // and must NEVER be closed/verdicted (otherwise they'd show a bogus TIED 50%).
     const expiredCases = await prisma.case.findMany({
       where: {
         status: 'ACTIVE',
+        postType: 'JUDGE',
         createdAt: { lte: sevenDaysAgo }
       },
       include: {

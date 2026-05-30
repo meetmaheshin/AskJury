@@ -46,6 +46,9 @@ nul
 backups/
 *.local.env
 
+# Local UI-audit scratch (Playwright + screenshots)
+.uiaudit/
+
 # Prisma
 prisma/migrations/
 
