@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -30,13 +32,37 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Behind Railway's proxy — needed for correct client IPs (rate limiting).
+app.set('trust proxy', 1);
+
+// Security headers. CSP is left off (this is a JSON API served cross-origin to
+// the SPA); CORP set to cross-origin so the frontend domain can call it.
+app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
 // Middleware
 app.use(cors({
   origin: ['https://askjury.com', 'https://www.askjury.com', 'http://localhost:5173', 'http://localhost:3000'],
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Rate limiting: strict on auth (brute-force), looser global cap on the API.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts. Please try again later.' },
+});
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 150,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', apiLimiter);
+app.use('/api/auth', authLimiter);
 
 // Session middleware for Passport
 app.use(session({
