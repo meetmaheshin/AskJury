@@ -16,7 +16,7 @@ const Navbar = () => {
                 </svg>
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Jury
+                AskJury
               </span>
             </Link>
             <div className="hidden md:flex ml-10 space-x-2">

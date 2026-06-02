@@ -81,14 +81,16 @@ const Register = () => {
       return;
     }
 
-    if (username.length < 3) {
-      setError('Username must be at least 3 characters');
-      return;
-    }
-
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      setError('Username can only contain letters, numbers, and underscores');
-      return;
+    // Username is optional — an anonymous handle is auto-assigned. Validate only if provided.
+    if (username) {
+      if (username.length < 3) {
+        setError('Username must be at least 3 characters');
+        return;
+      }
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        setError('Username can only contain letters, numbers, and underscores');
+        return;
+      }
     }
 
     setLoading(true);
@@ -110,7 +112,7 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-black">
+    <div className="min-h-screen flex items-start sm:items-center justify-center py-8 sm:py-12 pb-28 sm:pb-12 px-4 sm:px-6 lg:px-8 bg-black">
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-bold text-white">
@@ -148,19 +150,19 @@ const Register = () => {
             </div>
             <div>
               <label htmlFor="username" className="label">
-                Username
+                Username <span className="text-gray-500 text-xs font-normal">(optional)</span>
               </label>
               <input
                 id="username"
                 name="username"
                 type="text"
                 autoComplete="username"
-                required
                 className="input"
-                placeholder="username"
+                placeholder="Leave blank for an anonymous handle"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
+              <p className="text-xs text-gray-500 mt-1">You'll always post under an anonymous handle — your username stays private.</p>
             </div>
             <div>
               <label htmlFor="password" className="label">

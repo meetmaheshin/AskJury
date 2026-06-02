@@ -177,16 +177,16 @@ const Home = () => {
             {/* Right: Stats */}
             <div className="flex gap-6 md:gap-8">
               <div className="text-center">
-                <p className="text-2xl md:text-3xl font-black text-white">50K+</p>
-                <p className="text-xs text-gray-500">Judges</p>
+                <p className="text-2xl md:text-3xl font-black text-white">{new Intl.NumberFormat('en', { notation: 'compact' }).format(stats.totalCases || 0)}</p>
+                <p className="text-xs text-gray-500">Rants</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl md:text-3xl font-black text-primary">1M+</p>
+                <p className="text-2xl md:text-3xl font-black text-primary">{new Intl.NumberFormat('en', { notation: 'compact' }).format(stats.totalVotes || 0)}</p>
                 <p className="text-xs text-gray-500">Verdicts</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl md:text-3xl font-black text-secondary">24/7</p>
-                <p className="text-xs text-gray-500">Drama</p>
+                <p className="text-2xl md:text-3xl font-black text-secondary">{new Intl.NumberFormat('en', { notation: 'compact' }).format(stats.totalComments || 0)}</p>
+                <p className="text-xs text-gray-500">Opinions</p>
               </div>
             </div>
           </div>
@@ -199,9 +199,9 @@ const Home = () => {
       )}
 
       <div id="cases-section" className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Sidebar - Trending Categories */}
-          <aside className="hidden xl:block xl:col-span-2">
+          <aside className="hidden lg:block lg:col-span-3 xl:col-span-2">
             <div className="sticky top-20">
               <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl shadow-sm p-5 border border-gray-800/50 mb-6">
                 <h3 className="font-bold text-white mb-4 flex items-center text-sm uppercase tracking-wider">
@@ -313,7 +313,7 @@ const Home = () => {
           </aside>
 
           {/* Main Content */}
-          <main className="xl:col-span-8">
+          <main className="lg:col-span-6 xl:col-span-8">
         {/* Tabs */}
         <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl shadow-sm p-1.5 mb-6 flex space-x-1 border border-gray-800/50">
           <button
@@ -361,7 +361,7 @@ const Home = () => {
         </div>
 
         {/* Category filter - Mobile only */}
-        <div className="mb-6 xl:hidden">
+        <div className="mb-6 lg:hidden">
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -402,7 +402,7 @@ const Home = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {cases.map((caseItem) => (
                 <CaseCard key={caseItem.id} caseItem={caseItem} />
               ))}
@@ -443,7 +443,7 @@ const Home = () => {
           </main>
 
           {/* Right Sidebar - Community Stats */}
-          <aside className="hidden xl:block xl:col-span-2">
+          <aside className="hidden lg:block lg:col-span-3 xl:col-span-2">
             <div className="sticky top-20 space-y-6">
               {/* Top Jury Leaderboard */}
               <div className="bg-gradient-to-br from-success/5 to-green-900/10 rounded-2xl shadow-sm p-5 border border-success/20">

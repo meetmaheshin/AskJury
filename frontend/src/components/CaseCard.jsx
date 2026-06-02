@@ -5,6 +5,10 @@ import { getCategoryLabel, authorName, REACTIONS } from '../utils/categories';
 const CaseCard = ({ caseItem }) => {
   const [imageError, setImageError] = useState(false);
   const isVent = caseItem.postType === 'VENT';
+  const voteCount = caseItem.voteCount ?? caseItem._count?.votes ?? 0;
+  const reactionCount = caseItem.totalReactions ?? 0;
+  const aPct = caseItem.sideAPercentage ?? 50;
+  const bPct = caseItem.sideBPercentage ?? 50;
 
   const formatTimeAgo = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
@@ -78,73 +82,66 @@ const CaseCard = ({ caseItem }) => {
                   {mediaUrls.length}
                 </div>
               )}
-              <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full border ${isVent ? 'bg-secondary/20 text-secondary border-secondary/30' : 'bg-primary/20 text-primary border-primary/30'}`}>
-                {isVent ? 'Vent' : 'Judge'}
-              </span>
-              <span className="text-[10px] font-medium px-2 py-1 bg-white/10 backdrop-blur-md text-white rounded-full border border-white/20 whitespace-nowrap truncate max-w-[96px]">
-                {getCategoryLabel(caseItem.category)}
+              <span className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border ${isVent ? 'bg-secondary/20 text-secondary border-secondary/30' : 'bg-primary/20 text-primary border-primary/30'}`}>
+                {isVent ? '😤 Vent' : '⚖️ Judge'}
               </span>
             </div>
           </div>
 
           {/* Content - Glass effect */}
-          <div className="px-4 py-4 flex-grow backdrop-blur-[2px]">
+          <div className="px-4 pt-3 pb-4 flex-grow backdrop-blur-[2px]">
+            <span className="block text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-1.5 truncate">
+              {getCategoryLabel(caseItem.category)}
+            </span>
             <h3 className="text-base font-bold text-white mb-2 line-clamp-2 group-hover:text-primary transition-colors leading-snug drop-shadow-lg">
               {caseItem.title}
             </h3>
 
-            <p className="text-gray-200 text-sm line-clamp-2 leading-relaxed drop-shadow">
+            <p className="text-gray-200 text-sm line-clamp-3 leading-relaxed drop-shadow">
               {caseItem.description}
             </p>
           </div>
 
-          {/* Vent posts: reaction summary. Judge posts: vote bar. */}
+          {/* Vent posts: 5-reaction grid (always filled). Judge posts: vote bar or first-vote prompt. */}
           {isVent ? (
             <div className="px-4 py-3 backdrop-blur-md bg-black/40 border-t border-white/10">
-              <div className="flex items-center gap-2 text-base">
+              <div className="grid grid-cols-5 gap-1.5">
                 {REACTIONS.map((r) => {
                   const count = caseItem.reactions?.[r.type] || 0;
-                  if (!count) return null;
                   return (
-                    <span key={r.type} className="flex items-center text-xs text-gray-200 drop-shadow" title={r.label}>
-                      <span className="mr-0.5">{r.emoji}</span>{count}
-                    </span>
+                    <div
+                      key={r.type}
+                      title={r.label}
+                      className={`flex flex-col items-center justify-center rounded-lg py-1.5 ${count ? 'bg-white/10' : 'bg-white/[0.04]'}`}
+                    >
+                      <span className="text-base leading-none">{r.emoji}</span>
+                      <span className={`text-[10px] mt-0.5 font-semibold ${count ? 'text-white' : 'text-gray-500'}`}>{count}</span>
+                    </div>
                   );
                 })}
-                {!caseItem.totalReactions && (
-                  <span className="text-xs text-gray-400">Be the first to react 😮‍💨</span>
-                )}
               </div>
+            </div>
+          ) : voteCount === 0 ? (
+            <div className="px-4 py-4 backdrop-blur-md bg-black/40 border-t border-white/10 flex items-center justify-center">
+              <span className="text-sm font-semibold text-primary/90">⚖️ Be the first to vote</span>
             </div>
           ) : (
             <div className="px-4 py-3 backdrop-blur-md bg-black/40 border-t border-white/10">
               <div className="flex justify-between items-center text-xs font-medium mb-2">
                 <span className="text-green-400 flex items-center truncate max-w-[45%] drop-shadow">
-                  <svg className="w-3.5 h-3.5 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
-                  </svg>
                   <span className="truncate">{caseItem.sideALabel}</span>
                 </span>
                 <span className="text-red-400 flex items-center truncate max-w-[45%] drop-shadow">
                   <span className="truncate">{caseItem.sideBLabel}</span>
-                  <svg className="w-3.5 h-3.5 ml-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M18 9.5a1.5 1.5 0 11-3 0v-6a1.5 1.5 0 013 0v6zM14 9.667v-5.43a2 2 0 00-1.105-1.79l-.05-.025A4 4 0 0011.055 2H5.64a2 2 0 00-1.962 1.608l-1.2 6A2 2 0 004.44 12H8v4a2 2 0 002 2 1 1 0 001-1v-.667a4 4 0 01.8-2.4l1.4-1.866a4 4 0 00.8-2.4z" />
-                  </svg>
                 </span>
               </div>
               <div className="relative flex h-2 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
-                <div
-                  className="bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
-                  style={{ width: `${caseItem.sideAPercentage || 50}%` }}
-                />
-                <div
-                  className="bg-gradient-to-r from-red-500 to-red-400 transition-all duration-500"
-                  style={{ width: `${caseItem.sideBPercentage || 50}%` }}
-                />
+                <div className="bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500" style={{ width: `${aPct}%` }} />
+                <div className="bg-gradient-to-r from-red-500 to-red-400 transition-all duration-500" style={{ width: `${bPct}%` }} />
               </div>
               <div className="flex justify-between text-xs font-bold mt-1.5">
-                <span className="text-green-400 drop-shadow">{caseItem.sideAPercentage || 50}%</span>
-                <span className="text-red-400 drop-shadow">{caseItem.sideBPercentage || 50}%</span>
+                <span className="text-green-400 drop-shadow">{aPct}%</span>
+                <span className="text-red-400 drop-shadow">{bPct}%</span>
               </div>
             </div>
           )}
@@ -156,9 +153,7 @@ const CaseCard = ({ caseItem }) => {
                 <svg className="w-4 h-4 mr-1 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {isVent
-                  ? (caseItem.totalReactions || 0)
-                  : (caseItem.voteCount || caseItem._count?.votes || 0)}
+                {isVent ? reactionCount : voteCount}
               </span>
               <span className="flex items-center font-medium">
                 <svg className="w-4 h-4 mr-1 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
