@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { calculateVerdict } from '../src/utils/verdictCalculator.js';
 import { findOrCreateCompany } from '../src/utils/companies.js';
+import { generateHandle } from '../src/utils/handleGenerator.js';
 import {
   ALL_CASE_TEMPLATES,
   WORKPLACE_COMMENTS,
@@ -68,12 +69,16 @@ async function main() {
   for (const u of named) {
     users.push(await prisma.user.create({ data: { ...u, passwordHash, isVerified: true } }));
   }
+  const seenHandles = new Set(named.map((n) => n.anonymousHandle));
   for (let i = 0; i < NUM_BOTS; i++) {
-    const handle = `${pick(ADJ)}${pick(NOUN)}${1000 + i}`;
+    let handle = generateHandle();
+    let t = 0;
+    while (seenHandles.has(handle) && t < 30) { handle = generateHandle(); t++; }
+    seenHandles.add(handle);
     users.push(await prisma.user.create({
       data: {
         email: `bot${i}@bots.askjury.local`,
-        username: `bot_${i}_${handle.toLowerCase()}`.slice(0, 30),
+        username: `u_${i}_${handle.toLowerCase()}`.slice(0, 30),
         anonymousHandle: handle,
         passwordHash,
         isBot: true,

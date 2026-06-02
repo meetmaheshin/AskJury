@@ -100,12 +100,16 @@ function MarqueeCard({ caseItem }) {
       <div className="space-y-1 mb-2">
         <div className="flex justify-between text-[10px] md:text-xs">
           <span className="text-green-400 font-semibold">{sideAPercentage}%</span>
-          <span className="text-blue-400 font-semibold">{sideBPercentage}%</span>
+          <span className="text-red-400 font-semibold">{sideBPercentage}%</span>
         </div>
-        <div className="h-1.5 md:h-2 bg-gray-800 rounded-full overflow-hidden">
+        <div className="flex h-1.5 md:h-2 bg-gray-800 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
             style={{ width: `${sideAPercentage}%` }}
+          ></div>
+          <div
+            className="h-full bg-gradient-to-r from-red-500 to-red-400 transition-all duration-500"
+            style={{ width: `${sideBPercentage}%` }}
           ></div>
         </div>
       </div>
