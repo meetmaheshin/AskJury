@@ -102,9 +102,12 @@ const CaseCard = ({ caseItem }) => {
             </p>
           </div>
 
-          {/* Vent posts: 5-reaction grid (always filled). Judge posts: vote bar or first-vote prompt. */}
+          {/* Vent posts: reaction row (counts only when > 0 — no wall of zeros). */}
           {isVent ? (
             <div className="px-4 py-3 backdrop-blur-md bg-black/40 border-t border-white/10">
+              {reactionCount === 0 && (
+                <p className="text-[11px] text-gray-400 mb-2">Tap a reaction on the rant 👇</p>
+              )}
               <div className="grid grid-cols-5 gap-1.5">
                 {REACTIONS.map((r) => {
                   const count = caseItem.reactions?.[r.type] || 0;
@@ -112,10 +115,10 @@ const CaseCard = ({ caseItem }) => {
                     <div
                       key={r.type}
                       title={r.label}
-                      className={`flex flex-col items-center justify-center rounded-lg py-1.5 ${count ? 'bg-white/10' : 'bg-white/[0.04]'}`}
+                      className={`flex items-center justify-center gap-1 rounded-lg py-2 ${count ? 'bg-white/10' : 'bg-white/[0.04]'}`}
                     >
-                      <span className="text-base leading-none">{r.emoji}</span>
-                      <span className={`text-[10px] mt-0.5 font-semibold ${count ? 'text-white' : 'text-gray-500'}`}>{count}</span>
+                      <span className="text-lg leading-none">{r.emoji}</span>
+                      {count > 0 && <span className="text-[11px] font-semibold text-white">{count}</span>}
                     </div>
                   );
                 })}
