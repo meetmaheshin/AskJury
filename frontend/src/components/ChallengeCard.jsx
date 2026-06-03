@@ -24,8 +24,8 @@ export default function ChallengeCard({ caseItem }) {
   );
 
   return (
-    <Link to={`/case/${caseItem.id}`} className="block group">
-      <div className="rounded-3xl p-5 border border-white/10 bg-gradient-to-br from-zinc-900 via-purple-950/40 to-yellow-900/10 hover:border-yellow-400/30 transition-all">
+    <Link to={`/case/${caseItem.id}`} className="block group h-full">
+      <div className="h-full flex flex-col rounded-3xl p-5 border border-white/10 bg-gradient-to-br from-zinc-900 via-purple-950/40 to-yellow-900/10 hover:border-yellow-400/30 transition-all">
         {/* Top row */}
         <div className="flex items-center justify-between mb-3">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-yellow-400">
@@ -37,7 +37,7 @@ export default function ChallengeCard({ caseItem }) {
         </div>
 
         {/* Claim */}
-        <h3 className="text-lg md:text-xl font-bold text-white leading-snug mb-1.5 line-clamp-2 group-hover:text-yellow-300 transition-colors">
+        <h3 className="text-lg md:text-xl font-bold text-white leading-snug mb-1.5 line-clamp-2 min-h-[3.25rem] group-hover:text-yellow-300 transition-colors">
           {caseItem.title}
         </h3>
         <span className="block text-[11px] font-medium uppercase tracking-wide text-zinc-500 mb-4">
@@ -65,26 +65,26 @@ export default function ChallengeCard({ caseItem }) {
           </div>
         </div>
 
-        {/* Support bar (only once there's a rival) */}
-        {!isOpen && (
-          <div className="mb-4">
-            <div className="flex justify-between text-[11px] font-bold mb-1">
-              <span className="text-purple-300">{aPct}%</span>
-              <span className="text-yellow-300">{bPct}%</span>
+        {/* Bottom block pinned to the card foot so every card is the same height */}
+        <div className="mt-auto pt-4">
+          {!isOpen && (
+            <div className="mb-3">
+              <div className="flex justify-between text-[11px] font-bold mb-1">
+                <span className="text-purple-300">{aPct}%</span>
+                <span className="text-yellow-300">{bPct}%</span>
+              </div>
+              <div className="flex h-2.5 rounded-full overflow-hidden bg-zinc-800">
+                <div className="bg-purple-500 transition-all duration-500" style={{ width: `${aPct}%` }} />
+                <div className="bg-yellow-400 transition-all duration-500" style={{ width: `${bPct}%` }} />
+              </div>
             </div>
-            <div className="flex h-2.5 rounded-full overflow-hidden bg-zinc-800">
-              <div className="bg-purple-500 transition-all duration-500" style={{ width: `${aPct}%` }} />
-              <div className="bg-yellow-400 transition-all duration-500" style={{ width: `${bPct}%` }} />
-            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-zinc-400">{supporters.toLocaleString()} backing</span>
+            <span className={`text-sm font-bold ${isOpen ? 'text-purple-300' : 'text-yellow-400'} group-hover:opacity-80`}>
+              {isClosed ? 'See the verdict →' : isOpen ? 'Accept the challenge →' : 'Pick a side →'}
+            </span>
           </div>
-        )}
-
-        {/* CTA */}
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] text-zinc-400">{supporters.toLocaleString()} backing</span>
-          <span className={`text-sm font-bold ${isOpen ? 'text-purple-300' : 'text-yellow-400'} group-hover:opacity-80`}>
-            {isClosed ? 'See the verdict →' : isOpen ? 'Accept the challenge →' : 'Pick a side →'}
-          </span>
         </div>
       </div>
     </Link>
