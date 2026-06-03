@@ -6,6 +6,7 @@ import CommentSection from '../components/CommentSection';
 import VerdictBadge from '../components/VerdictBadge';
 import CloseCaseButton from '../components/CloseCaseButton';
 import { getCategoryLabel, authorName, REACTIONS } from '../utils/categories';
+import ChallengeArena from '../components/ChallengeArena';
 
 const CaseDetail = () => {
   const { id } = useParams();
@@ -129,6 +130,41 @@ const CaseDetail = () => {
   const isClosed = caseData.status === 'CLOSED';
   const isOwner = user?.id === caseData.userId;
   const isVent = caseData.postType === 'VENT';
+  const isChallenge = caseData.postType === 'CHALLENGE';
+
+  const handleAccept = async () => {
+    if (!isAuthenticated) { navigate('/login'); return; }
+    const statement = window.prompt(`Argue the other side ("${caseData.sideBLabel}") — make your case:`);
+    if (!statement || statement.trim().length < 10) return;
+    setVoting(true);
+    try {
+      await api.post(`/cases/${id}/accept`, { statement: statement.trim() });
+      await fetchCase();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to accept challenge');
+    } finally {
+      setVoting(false);
+    }
+  };
+
+  // Challenges get the dedicated Arena experience.
+  if (isChallenge) {
+    return (
+      <div className="min-h-screen bg-black py-6">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <button onClick={() => navigate(-1)} className="mb-4 flex items-center text-gray-400 hover:text-yellow-400 transition-colors">
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            Back
+          </button>
+          <ChallengeArena caseData={caseData} onSupport={handleVote} onAccept={handleAccept} busy={voting} />
+          <div className="mt-6 bg-gray-900 rounded-2xl p-5 md:p-6 border border-gray-800">
+            <h2 className="text-xl font-black text-white mb-4">🍿 The Gallery ({caseData._count?.comments || 0})</h2>
+            <CommentSection caseId={id} isOP={user?.id === caseData.userId} disabled={isClosed} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black py-6">
