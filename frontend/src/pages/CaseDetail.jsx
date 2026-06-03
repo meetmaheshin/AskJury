@@ -147,6 +147,16 @@ const CaseDetail = () => {
     }
   };
 
+  const handleRound = async (content) => {
+    if (!isAuthenticated) { navigate('/login'); return; }
+    try {
+      await api.post(`/cases/${id}/round`, { content });
+      await fetchCase();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to post rebuttal');
+    }
+  };
+
   // Challenges get the dedicated Arena experience.
   if (isChallenge) {
     return (
@@ -156,7 +166,7 @@ const CaseDetail = () => {
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             Back
           </button>
-          <ChallengeArena caseData={caseData} onSupport={handleVote} onAccept={handleAccept} busy={voting} />
+          <ChallengeArena caseData={caseData} onSupport={handleVote} onAccept={handleAccept} onRound={handleRound} currentUserId={user?.id} busy={voting} />
           <div className="mt-6 bg-gray-900 rounded-2xl p-5 md:p-6 border border-gray-800">
             <h2 className="text-xl font-black text-white mb-4">🍿 The Gallery ({caseData._count?.comments || 0})</h2>
             <CommentSection caseId={id} isOP={user?.id === caseData.userId} disabled={isClosed} />

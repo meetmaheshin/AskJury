@@ -132,6 +132,13 @@ async function main() {
   console.log('📋 Created cases:', createdCases.length);
 
   // VS Challenges — ~70% accepted (opponent argues back), rest open for the "accept" CTA.
+  const REBUTTALS = [
+    "That's exactly the cope I expected.", "You didn't actually address my point.",
+    "Weak. Try again with a real argument.", "Cute story, but the data says otherwise.",
+    "You're literally proving my point for me.", "Strawman — I never said that.",
+    "That's a you problem, not a them problem.", "Works in theory, never in practice.",
+    "Hard disagree, and here's why: it scales.", "Be honest, nobody's buying that.",
+  ];
   const challengeSeeds = [...CHALLENGE_TEMPLATES, ...CHALLENGE_TEMPLATES];
   let challengeCount = 0;
   for (const tpl of challengeSeeds) {
@@ -153,8 +160,27 @@ async function main() {
       data.opponentStatement = tpl.opponent;
       data.challengeAcceptedAt = data.createdAt;
     }
-    createdCases.push(await prisma.case.create({ data }));
+    const created = await prisma.case.create({ data });
+    createdCases.push(created);
     challengeCount++;
+    // Add a few back-and-forth rebuttal rounds on accepted challenges.
+    if (data.opponentId) {
+      const nRounds = randInt(0, 3);
+      for (let k = 0; k < nRounds; k++) {
+        const side = k % 2 === 0 ? 'SIDE_A' : 'SIDE_B';
+        try {
+          await prisma.challengeRound.create({
+            data: {
+              caseId: created.id,
+              userId: side === 'SIDE_A' ? created.userId : data.opponentId,
+              side,
+              content: pick(REBUTTALS),
+              createdAt: new Date(new Date(created.createdAt).getTime() + (k + 1) * 3600000),
+            },
+          });
+        } catch { /* ignore */ }
+      }
+    }
   }
   console.log('⚔️ Created challenges:', challengeCount);
 

@@ -41,8 +41,25 @@ model User {
   comments     Comment[]
   reports      Report[]
   pushSubscriptions PushSubscription[]
+  challengeRounds ChallengeRound[]
 
   @@map("users")
+}
+
+// A rebuttal in a CHALLENGE debate (back-and-forth after the opening statements).
+model ChallengeRound {
+  id        String   @id @default(uuid())
+  caseId    String   @map("case_id")
+  userId    String   @map("user_id")
+  side      VoteSide // SIDE_A = challenger, SIDE_B = opponent
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  case      Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@map("challenge_rounds")
 }
 
 // Web Push subscriptions (one device/browser per row) for notifications.
@@ -177,6 +194,7 @@ model Case {
   votes       Vote[]
   reactions   Reaction[]
   comments    Comment[]
+  rounds      ChallengeRound[]
 
   @@index([userId])
   @@index([opponentId])

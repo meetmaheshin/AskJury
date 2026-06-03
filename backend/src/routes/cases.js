@@ -21,6 +21,7 @@ const CASE_INCLUDE = {
   user: { select: PUBLIC_USER_SELECT },
   opponent: { select: PUBLIC_USER_SELECT },
   company: { select: { id: true, name: true, slug: true, logoUrl: true } },
+  rounds: { include: { user: { select: PUBLIC_USER_SELECT } }, orderBy: { createdAt: 'asc' } },
   _count: { select: { votes: true, reactions: true, comments: true } },
 };
 
@@ -498,6 +499,37 @@ router.post('/:id/accept', authenticate, [
   } catch (error) {
     console.error('Accept challenge error:', error);
     res.status(500).json({ error: 'Failed to accept challenge' });
+  }
+});
+
+// Post a rebuttal round in a CHALLENGE (only the two debaters).
+router.post('/:id/round', authenticate, [
+  body('content').trim().isLength({ min: 5, max: 1500 }),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const { id } = req.params;
+    const { content } = req.body;
+
+    const caseItem = await prisma.case.findUnique({ where: { id } });
+    if (!caseItem) return res.status(404).json({ error: 'Challenge not found' });
+    if (caseItem.postType !== 'CHALLENGE') return res.status(400).json({ error: 'This post is not a challenge' });
+    if (caseItem.status !== 'ACTIVE') return res.status(400).json({ error: 'This challenge is closed' });
+
+    let side = null;
+    if (req.user.id === caseItem.userId) side = 'SIDE_A';
+    else if (req.user.id === caseItem.opponentId) side = 'SIDE_B';
+    else return res.status(403).json({ error: 'Only the two debaters can post rebuttals' });
+
+    await prisma.challengeRound.create({ data: { caseId: id, userId: req.user.id, side, content } });
+    const updated = await prisma.case.findUnique({ where: { id }, include: CASE_INCLUDE });
+    res.status(201).json({ case: updated });
+  } catch (error) {
+    console.error('Post round error:', error);
+    res.status(500).json({ error: 'Failed to post rebuttal' });
   }
 });
 
