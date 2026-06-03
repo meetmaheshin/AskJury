@@ -26,8 +26,11 @@ export async function autoCloseCases() {
     const expiredCases = await prisma.case.findMany({
       where: {
         status: 'ACTIVE',
-        postType: 'JUDGE',
-        createdAt: { lte: sevenDaysAgo }
+        createdAt: { lte: sevenDaysAgo },
+        OR: [
+          { postType: 'JUDGE' },
+          { postType: 'CHALLENGE', opponentId: { not: null } }, // only decided (accepted) challenges
+        ],
       },
       include: {
         _count: {

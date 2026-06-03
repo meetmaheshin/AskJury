@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { getCategoryLabel, authorName, REACTIONS } from '../utils/categories';
+import ChallengeCard from './ChallengeCard';
 
 const CaseCard = ({ caseItem }) => {
   const [imageError, setImageError] = useState(false);
@@ -33,6 +34,11 @@ const CaseCard = ({ caseItem }) => {
       : [];
 
   const hasValidImage = mediaUrls.length > 0 && !imageError;
+
+  // Challenges get their own VS card.
+  if (caseItem.postType === 'CHALLENGE') {
+    return <ChallengeCard caseItem={caseItem} />;
+  }
 
   return (
     <Link to={`/case/${caseItem.id}`} className="block group h-full">

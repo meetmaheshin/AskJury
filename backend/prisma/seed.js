@@ -11,6 +11,7 @@ import {
 } from '../src/jobs/botActivityManager.js';
 import { LIFE_COMMENTS } from '../src/jobs/lifeTemplates.js';
 import { HUMAN_COMMENTS } from '../src/jobs/globalContent.js';
+import { CHALLENGE_TEMPLATES } from '../src/jobs/challengeTemplates.js';
 
 const prisma = new PrismaClient();
 
@@ -130,15 +131,42 @@ async function main() {
   }
   console.log('📋 Created cases:', createdCases.length);
 
-  // Votes (JUDGE) + reactions (VENT).
+  // VS Challenges — ~70% accepted (opponent argues back), rest open for the "accept" CTA.
+  const challengeSeeds = [...CHALLENGE_TEMPLATES, ...CHALLENGE_TEMPLATES];
+  let challengeCount = 0;
+  for (const tpl of challengeSeeds) {
+    const challenger = pick(users);
+    const data = {
+      userId: challenger.id,
+      title: tpl.title,
+      description: tpl.challenger,
+      category: tpl.category,
+      postType: 'CHALLENGE',
+      sideALabel: tpl.sideALabel,
+      sideBLabel: tpl.sideBLabel,
+      mediaUrls: JSON.stringify([]),
+      createdAt: weightedRecentDate(),
+    };
+    if (Math.random() < 0.7) {
+      const opponent = pick(users.filter((u) => u.id !== challenger.id));
+      data.opponentId = opponent.id;
+      data.opponentStatement = tpl.opponent;
+      data.challengeAcceptedAt = data.createdAt;
+    }
+    createdCases.push(await prisma.case.create({ data }));
+    challengeCount++;
+  }
+  console.log('⚔️ Created challenges:', challengeCount);
+
+  // Votes (JUDGE + accepted CHALLENGE) + reactions (VENT).
   const reactionTypes = ['RELATABLE', 'BOSS_WRONG', 'OVERREACTING', 'SAME_HERE', 'RUN'];
   const votesData = [];
   const reactionsData = [];
   for (const c of createdCases) {
-    const voters = shuffled(users.filter((u) => u.id !== c.userId)).slice(0, randInt(4, 45));
-    if (c.postType === 'JUDGE') {
+    const voters = shuffled(users.filter((u) => u.id !== c.userId && u.id !== c.opponentId)).slice(0, randInt(4, 45));
+    if (c.postType === 'JUDGE' || (c.postType === 'CHALLENGE' && c.opponentId)) {
       for (const u of voters) votesData.push({ caseId: c.id, userId: u.id, side: Math.random() < 0.55 ? 'SIDE_A' : 'SIDE_B' });
-    } else {
+    } else if (c.postType === 'VENT') {
       for (const u of voters.slice(0, randInt(3, 30))) reactionsData.push({ caseId: c.id, userId: u.id, type: pick(reactionTypes) });
     }
   }
@@ -169,7 +197,7 @@ async function main() {
   console.log('🏛️ Closing older JUDGE cases with verdicts...');
   let closed = 0;
   for (const c of createdCases) {
-    if (c.postType !== 'JUDGE') continue;
+    if (!(c.postType === 'JUDGE' || (c.postType === 'CHALLENGE' && c.opponentId))) continue;
     const ageDays = (NOW - new Date(c.createdAt)) / DAY_MS;
     if (ageDays < 7 || Math.random() > 0.4) continue;
 

@@ -15,6 +15,7 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('new');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [postTypeFilter, setPostTypeFilter] = useState('');
   const [leaderboard, setLeaderboard] = useState([]);
   const [closedCases, setClosedCases] = useState([]); // For marquee
   const [trending, setTrending] = useState([]); // For sidebar
@@ -33,7 +34,7 @@ const Home = () => {
     setOffset(0);
     setHasMore(true);
     fetchCases(true);
-  }, [activeTab, categoryFilter]);
+  }, [activeTab, categoryFilter, postTypeFilter]);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -59,6 +60,9 @@ const Home = () => {
       };
       if (categoryFilter) {
         params.category = categoryFilter;
+      }
+      if (postTypeFilter) {
+        params.postType = postTypeFilter;
       }
 
       const response = await api.get('/cases', { params });
@@ -314,6 +318,28 @@ const Home = () => {
 
           {/* Main Content */}
           <main className="lg:col-span-6 xl:col-span-8">
+        {/* Post-type filter — Challenges front and centre */}
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+          {[
+            { v: '', label: '🔥 All' },
+            { v: 'CHALLENGE', label: '⚔️ Challenges' },
+            { v: 'JUDGE', label: '⚖️ Jury' },
+            { v: 'VENT', label: '😤 Vents' },
+          ].map((p) => (
+            <button
+              key={p.v}
+              onClick={() => setPostTypeFilter(p.v)}
+              className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+                postTypeFilter === p.v
+                  ? 'bg-yellow-400 text-black border-yellow-400'
+                  : 'bg-zinc-900 text-gray-300 border-white/10 hover:border-white/30'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
         {/* Tabs */}
         <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl shadow-sm p-1.5 mb-6 flex space-x-1 border border-gray-800/50">
           <button

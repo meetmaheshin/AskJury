@@ -34,7 +34,8 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  cases        Case[]
+  cases        Case[]    @relation("CaseAuthor")
+  challenges   Case[]    @relation("CaseOpponent")
   votes        Vote[]
   reactions    Reaction[]
   comments     Comment[]
@@ -113,9 +114,12 @@ enum CaseStatus {
 }
 
 // VENT = pure rant, reactions only. JUDGE = put it to the jury, two-sided vote + verdict.
+// CHALLENGE = 1v1 argument: challenger states a side, an opponent accepts the other side,
+// the crowd backs a side, highest support wins.
 enum PostType {
   VENT
   JUDGE
+  CHALLENGE
 }
 
 // Who/what a post is aimed at.
@@ -150,6 +154,11 @@ model Case {
   targetName     String?      @map("target_name") // free text, e.g. "my manager" or a typed company name
   companyId      String?      @map("company_id")
 
+  // CHALLENGE posts: the opponent who accepted the other side, and their argument.
+  opponentId          String?   @map("opponent_id")
+  opponentStatement   String?   @db.Text @map("opponent_statement")
+  challengeAcceptedAt DateTime? @map("challenge_accepted_at")
+
   mediaUrls      Json         @default("[]") @map("media_urls")
   sideALabel     String       @default("You're valid") @map("side_a_label")
   sideBLabel     String       @default("You're overreacting") @map("side_b_label")
@@ -162,13 +171,15 @@ model Case {
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
 
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User         @relation("CaseAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  opponent    User?        @relation("CaseOpponent", fields: [opponentId], references: [id], onDelete: SetNull)
   company     Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
   votes       Vote[]
   reactions   Reaction[]
   comments    Comment[]
 
   @@index([userId])
+  @@index([opponentId])
   @@index([companyId])
   @@index([category])
   @@index([postType])
