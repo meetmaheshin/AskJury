@@ -72,8 +72,8 @@ const SubmitCase = () => {
       if (companyName.trim()) {
         formData.append('companyName', companyName.trim());
       }
-      // Side labels only matter for a "judge" (two-sided vote) post.
-      if (postType === 'JUDGE') {
+      // Side labels matter for judge + challenge (the two stances).
+      if (postType === 'JUDGE' || postType === 'CHALLENGE') {
         formData.append('sideALabel', sideALabel);
         formData.append('sideBLabel', sideBLabel);
       }
@@ -97,12 +97,20 @@ const SubmitCase = () => {
     }
   };
 
+  const selectPostType = (type) => {
+    setPostType(type);
+    if (type === 'CHALLENGE') { setSideALabel(''); setSideBLabel(''); }
+    else if (type === 'JUDGE') { setSideALabel("You're valid"); setSideBLabel("You're overreacting"); }
+  };
+
+  const isChallenge = postType === 'CHALLENGE';
+
   return (
-    <div className="min-h-screen bg-black py-8">
+    <div className="min-h-screen bg-black py-8 pb-28 md:pb-8">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-gray-900 rounded-lg shadow-md p-6 border border-gray-800">
-          <h1 className="text-3xl font-bold text-white mb-2">Get it off your chest</h1>
-          <p className="text-gray-400 mb-6">Rant about work. Vent for reactions, or put it to the jury for a verdict.</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{isChallenge ? 'Start an argument ⚔️' : 'Get it off your chest'}</h1>
+          <p className="text-gray-400 mb-6">{isChallenge ? 'Stake a claim. Someone takes the other side. The crowd decides who wins.' : 'Rant about work. Vent for reactions, or put it to the jury for a verdict.'}</p>
 
           {error && (
             <div className="bg-red-900/30 border border-red-500 text-red-400 px-4 py-3 rounded-xl mb-4">
@@ -114,66 +122,72 @@ const SubmitCase = () => {
             {/* Post type toggle */}
             <div>
               <label className="label">Post type</label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   type="button"
-                  onClick={() => setPostType('VENT')}
+                  onClick={() => selectPostType('VENT')}
                   className={`p-4 rounded-xl border text-left transition-all ${
-                    postType === 'VENT'
-                      ? 'border-secondary bg-secondary/10 ring-2 ring-secondary/40'
-                      : 'border-gray-700 bg-gray-800/40 hover:border-gray-600'
+                    postType === 'VENT' ? 'border-secondary bg-secondary/10 ring-2 ring-secondary/40' : 'border-gray-700 bg-gray-800/40 hover:border-gray-600'
                   }`}
                 >
                   <p className="font-bold text-white">😤 Vent</p>
-                  <p className="text-xs text-gray-400 mt-1">Just rant. People react, no verdict.</p>
+                  <p className="text-xs text-gray-400 mt-1">Just rant. People react.</p>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPostType('JUDGE')}
+                  onClick={() => selectPostType('JUDGE')}
                   className={`p-4 rounded-xl border text-left transition-all ${
-                    postType === 'JUDGE'
-                      ? 'border-primary bg-primary/10 ring-2 ring-primary/40'
-                      : 'border-gray-700 bg-gray-800/40 hover:border-gray-600'
+                    postType === 'JUDGE' ? 'border-primary bg-primary/10 ring-2 ring-primary/40' : 'border-gray-700 bg-gray-800/40 hover:border-gray-600'
                   }`}
                 >
                   <p className="font-bold text-white">⚖️ Judge</p>
-                  <p className="text-xs text-gray-400 mt-1">Two sides. Let the jury vote who's right.</p>
+                  <p className="text-xs text-gray-400 mt-1">Jury votes who's right.</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => selectPostType('CHALLENGE')}
+                  className={`p-4 rounded-xl border text-left transition-all ${
+                    postType === 'CHALLENGE' ? 'border-yellow-400 bg-yellow-400/10 ring-2 ring-yellow-400/40' : 'border-gray-700 bg-gray-800/40 hover:border-gray-600'
+                  }`}
+                >
+                  <p className="font-bold text-white">⚔️ Challenge</p>
+                  <p className="text-xs text-gray-400 mt-1">1v1 debate. Crowd backs a side.</p>
                 </button>
               </div>
             </div>
 
             <div>
               <label htmlFor="title" className="label">
-                Title <span className="text-gray-500 text-sm">({title.length}/120)</span>
+                {isChallenge ? 'The claim' : 'Title'} <span className="text-gray-500 text-sm">({title.length}/120)</span>
               </label>
               <input
                 type="text"
                 id="title"
                 className="input"
-                placeholder="My manager just..."
+                placeholder={isChallenge ? 'Pineapple belongs on pizza' : 'My manager just...'}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={120}
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">Be clear and concise</p>
+              <p className="text-xs text-gray-500 mt-1">{isChallenge ? 'The debate topic — keep it punchy.' : 'Be clear and concise'}</p>
             </div>
 
             <div>
               <label htmlFor="description" className="label">
-                Description <span className="text-gray-500 text-sm">({description.length}/2000)</span>
+                {isChallenge ? 'Your opening argument' : 'Description'} <span className="text-gray-500 text-sm">({description.length}/2000)</span>
               </label>
               <textarea
                 id="description"
                 className="input min-h-[200px]"
-                placeholder="Tell the story in detail..."
+                placeholder={isChallenge ? 'Make your case. Your rival will counter — bring your best points.' : 'Tell the story in detail...'}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 maxLength={2000}
                 rows="8"
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">Include all relevant details</p>
+              <p className="text-xs text-gray-500 mt-1">{isChallenge ? "Your side of the argument. Someone will accept the other side." : 'Include all relevant details'}</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -216,34 +230,36 @@ const SubmitCase = () => {
               </div>
             </div>
 
-            {postType === 'JUDGE' && (
+            {(postType === 'JUDGE' || isChallenge) && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="sideALabel" className="label">
-                    Side A Label
+                    {isChallenge ? 'Your stance' : 'Side A Label'}
                   </label>
                   <input
                     type="text"
                     id="sideALabel"
                     className="input"
-                    placeholder="You're valid"
+                    placeholder={isChallenge ? 'Pineapple: yes' : "You're valid"}
                     value={sideALabel}
                     onChange={(e) => setSideALabel(e.target.value)}
                     maxLength={50}
+                    required={isChallenge}
                   />
                 </div>
                 <div>
                   <label htmlFor="sideBLabel" className="label">
-                    Side B Label
+                    {isChallenge ? "Rival's stance" : 'Side B Label'}
                   </label>
                   <input
                     type="text"
                     id="sideBLabel"
                     className="input"
-                    placeholder="You're overreacting"
+                    placeholder={isChallenge ? 'Pineapple: no' : "You're overreacting"}
                     value={sideBLabel}
                     onChange={(e) => setSideBLabel(e.target.value)}
                     maxLength={50}
+                    required={isChallenge}
                   />
                 </div>
               </div>
@@ -284,7 +300,7 @@ const SubmitCase = () => {
                 disabled={loading}
                 className="btn btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Posting...' : postType === 'VENT' ? 'Post Rant' : 'Submit to Jury'}
+                {loading ? 'Posting...' : isChallenge ? 'Start the Challenge ⚔️' : postType === 'VENT' ? 'Post Rant' : 'Submit to Jury'}
               </button>
               <button
                 type="button"
