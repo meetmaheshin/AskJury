@@ -19,9 +19,7 @@ const prisma = new PrismaClient();
 
 const CASE_INCLUDE = {
   user: { select: PUBLIC_USER_SELECT },
-  opponent: { select: PUBLIC_USER_SELECT },
   company: { select: { id: true, name: true, slug: true, logoUrl: true } },
-  rounds: { include: { user: { select: PUBLIC_USER_SELECT } }, orderBy: { createdAt: 'asc' } },
   _count: { select: { votes: true, reactions: true, comments: true } },
 };
 
@@ -308,8 +306,8 @@ router.post('/', authenticate, upload.array('media', 3), [
       mediaUrls: JSON.stringify(mediaUrls),
     };
 
-    // Side labels matter for JUDGE + CHALLENGE posts (the two stances).
-    if (postType === 'JUDGE' || postType === 'CHALLENGE') {
+    // Side labels only matter for JUDGE posts.
+    if (postType === 'JUDGE') {
       if (sideALabel) caseData.sideALabel = sideALabel;
       if (sideBLabel) caseData.sideBLabel = sideBLabel;
     }
@@ -343,7 +341,7 @@ router.post('/:id/vote', authenticate, [
     if (!caseItem) {
       return res.status(404).json({ error: 'Case not found' });
     }
-    if (caseItem.postType === 'VENT') {
+    if (caseItem.postType !== 'JUDGE') {
       return res.status(400).json({ error: 'This is a vent post — react to it instead of voting' });
     }
     if (caseItem.status === 'CLOSED') {
@@ -468,68 +466,6 @@ router.post('/:id/react', authenticate, [
   } catch (error) {
     console.error('React error:', error);
     res.status(500).json({ error: 'Failed to react' });
-  }
-});
-
-// Accept a CHALLENGE — become the opponent and argue the other side.
-router.post('/:id/accept', authenticate, [
-  body('statement').trim().isLength({ min: 10, max: 2000 }),
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    const { id } = req.params;
-    const { statement } = req.body;
-
-    const caseItem = await prisma.case.findUnique({ where: { id } });
-    if (!caseItem) return res.status(404).json({ error: 'Challenge not found' });
-    if (caseItem.postType !== 'CHALLENGE') return res.status(400).json({ error: 'This post is not a challenge' });
-    if (caseItem.status !== 'ACTIVE') return res.status(400).json({ error: 'This challenge is closed' });
-    if (caseItem.opponentId) return res.status(400).json({ error: 'This challenge already has an opponent' });
-    if (caseItem.userId === req.user.id) return res.status(400).json({ error: "You can't accept your own challenge" });
-
-    const updated = await prisma.case.update({
-      where: { id },
-      data: { opponentId: req.user.id, opponentStatement: statement, challengeAcceptedAt: new Date() },
-      include: CASE_INCLUDE,
-    });
-    res.json({ case: updated });
-  } catch (error) {
-    console.error('Accept challenge error:', error);
-    res.status(500).json({ error: 'Failed to accept challenge' });
-  }
-});
-
-// Post a rebuttal round in a CHALLENGE (only the two debaters).
-router.post('/:id/round', authenticate, [
-  body('content').trim().isLength({ min: 5, max: 1500 }),
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    const { id } = req.params;
-    const { content } = req.body;
-
-    const caseItem = await prisma.case.findUnique({ where: { id } });
-    if (!caseItem) return res.status(404).json({ error: 'Challenge not found' });
-    if (caseItem.postType !== 'CHALLENGE') return res.status(400).json({ error: 'This post is not a challenge' });
-    if (caseItem.status !== 'ACTIVE') return res.status(400).json({ error: 'This challenge is closed' });
-
-    let side = null;
-    if (req.user.id === caseItem.userId) side = 'SIDE_A';
-    else if (req.user.id === caseItem.opponentId) side = 'SIDE_B';
-    else return res.status(403).json({ error: 'Only the two debaters can post rebuttals' });
-
-    await prisma.challengeRound.create({ data: { caseId: id, userId: req.user.id, side, content } });
-    const updated = await prisma.case.findUnique({ where: { id }, include: CASE_INCLUDE });
-    res.status(201).json({ case: updated });
-  } catch (error) {
-    console.error('Post round error:', error);
-    res.status(500).json({ error: 'Failed to post rebuttal' });
   }
 });
 

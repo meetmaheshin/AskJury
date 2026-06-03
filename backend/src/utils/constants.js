@@ -36,7 +36,7 @@ export const CATEGORIES = [
 
 export const CATEGORY_VALUES = CATEGORIES.map((c) => c.value);
 
-export const POST_TYPES = ['VENT', 'JUDGE', 'CHALLENGE'];
+export const POST_TYPES = ['VENT', 'JUDGE'];
 
 export const TARGET_TYPES = ['COMPANY', 'PERSON', 'GENERAL'];
 

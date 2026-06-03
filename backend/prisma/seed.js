@@ -11,7 +11,6 @@ import {
 } from '../src/jobs/botActivityManager.js';
 import { LIFE_COMMENTS } from '../src/jobs/lifeTemplates.js';
 import { HUMAN_COMMENTS } from '../src/jobs/globalContent.js';
-import { CHALLENGE_TEMPLATES } from '../src/jobs/challengeTemplates.js';
 
 const prisma = new PrismaClient();
 
@@ -131,68 +130,15 @@ async function main() {
   }
   console.log('📋 Created cases:', createdCases.length);
 
-  // VS Challenges — ~70% accepted (opponent argues back), rest open for the "accept" CTA.
-  const REBUTTALS = [
-    "That's exactly the cope I expected.", "You didn't actually address my point.",
-    "Weak. Try again with a real argument.", "Cute story, but the data says otherwise.",
-    "You're literally proving my point for me.", "Strawman — I never said that.",
-    "That's a you problem, not a them problem.", "Works in theory, never in practice.",
-    "Hard disagree, and here's why: it scales.", "Be honest, nobody's buying that.",
-  ];
-  const challengeSeeds = [...CHALLENGE_TEMPLATES, ...CHALLENGE_TEMPLATES];
-  let challengeCount = 0;
-  for (const tpl of challengeSeeds) {
-    const challenger = pick(users);
-    const data = {
-      userId: challenger.id,
-      title: tpl.title,
-      description: tpl.challenger,
-      category: tpl.category,
-      postType: 'CHALLENGE',
-      sideALabel: tpl.sideALabel,
-      sideBLabel: tpl.sideBLabel,
-      mediaUrls: JSON.stringify([]),
-      createdAt: weightedRecentDate(),
-    };
-    if (Math.random() < 0.7) {
-      const opponent = pick(users.filter((u) => u.id !== challenger.id));
-      data.opponentId = opponent.id;
-      data.opponentStatement = tpl.opponent;
-      data.challengeAcceptedAt = data.createdAt;
-    }
-    const created = await prisma.case.create({ data });
-    createdCases.push(created);
-    challengeCount++;
-    // Add a few back-and-forth rebuttal rounds on accepted challenges.
-    if (data.opponentId) {
-      const nRounds = randInt(0, 3);
-      for (let k = 0; k < nRounds; k++) {
-        const side = k % 2 === 0 ? 'SIDE_A' : 'SIDE_B';
-        try {
-          await prisma.challengeRound.create({
-            data: {
-              caseId: created.id,
-              userId: side === 'SIDE_A' ? created.userId : data.opponentId,
-              side,
-              content: pick(REBUTTALS),
-              createdAt: new Date(new Date(created.createdAt).getTime() + (k + 1) * 3600000),
-            },
-          });
-        } catch { /* ignore */ }
-      }
-    }
-  }
-  console.log('⚔️ Created challenges:', challengeCount);
-
-  // Votes (JUDGE + accepted CHALLENGE) + reactions (VENT).
+  // Votes (JUDGE) + reactions (VENT).
   const reactionTypes = ['RELATABLE', 'BOSS_WRONG', 'OVERREACTING', 'SAME_HERE', 'RUN'];
   const votesData = [];
   const reactionsData = [];
   for (const c of createdCases) {
-    const voters = shuffled(users.filter((u) => u.id !== c.userId && u.id !== c.opponentId)).slice(0, randInt(4, 45));
-    if (c.postType === 'JUDGE' || (c.postType === 'CHALLENGE' && c.opponentId)) {
+    const voters = shuffled(users.filter((u) => u.id !== c.userId)).slice(0, randInt(4, 45));
+    if (c.postType === 'JUDGE') {
       for (const u of voters) votesData.push({ caseId: c.id, userId: u.id, side: Math.random() < 0.55 ? 'SIDE_A' : 'SIDE_B' });
-    } else if (c.postType === 'VENT') {
+    } else {
       for (const u of voters.slice(0, randInt(3, 30))) reactionsData.push({ caseId: c.id, userId: u.id, type: pick(reactionTypes) });
     }
   }
@@ -223,7 +169,7 @@ async function main() {
   console.log('🏛️ Closing older JUDGE cases with verdicts...');
   let closed = 0;
   for (const c of createdCases) {
-    if (!(c.postType === 'JUDGE' || (c.postType === 'CHALLENGE' && c.opponentId))) continue;
+    if (c.postType !== 'JUDGE') continue;
     const ageDays = (NOW - new Date(c.createdAt)) / DAY_MS;
     if (ageDays < 7 || Math.random() > 0.4) continue;
 

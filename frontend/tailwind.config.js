@@ -7,25 +7,24 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Arena palette: purple is the brand, yellow is the accent/CTA.
         primary: {
-          DEFAULT: '#9333EA',
-          dark: '#7E22CE',
-          light: '#A855F7',
-          50: '#FAF5FF',
-          100: '#F3E8FF',
-          500: '#A855F7',
-          600: '#9333EA',
-          700: '#7E22CE',
+          DEFAULT: '#0066FF',
+          dark: '#0052CC',
+          light: '#3385FF',
+          50: '#E6F0FF',
+          100: '#CCE0FF',
+          500: '#0066FF',
+          600: '#0052CC',
+          700: '#003D99',
         },
         secondary: {
-          DEFAULT: '#FACC15',
-          dark: '#EAB308',
-          light: '#FDE047',
+          DEFAULT: '#8B5CF6',
+          dark: '#7C3AED',
+          light: '#A78BFA',
         },
         accent: {
-          DEFAULT: '#FACC15',
-          light: '#FDE047',
+          DEFAULT: '#FF006E',
+          light: '#FF3D8F',
         },
         success: '#10B981',
         danger: '#EF4444',

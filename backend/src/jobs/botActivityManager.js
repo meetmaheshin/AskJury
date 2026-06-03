@@ -4,7 +4,6 @@ import { findOrCreateCompany } from '../utils/companies.js';
 import { CATEGORY_VALUES, REACTION_TYPES, CATEGORIES } from '../utils/constants.js';
 import { LIFE_TEMPLATES, LIFE_COMMENTS } from './lifeTemplates.js';
 import { MULTILINGUAL_WORKPLACE_TEMPLATES, HUMAN_COMMENTS } from './globalContent.js';
-import { CHALLENGE_TEMPLATES } from './challengeTemplates.js';
 
 const prisma = new PrismaClient();
 
@@ -245,65 +244,17 @@ async function botCreateCase() {
   }
 }
 
-/** Bot creates a VS challenge; ~65% are immediately accepted by another bot. */
-async function botCreateChallenge() {
-  try {
-    const [challenger] = await getRandomBots(1);
-    if (!challenger) return null;
-
-    const tpl = pick(CHALLENGE_TEMPLATES);
-    const newCase = await prisma.case.create({
-      data: {
-        userId: challenger.id,
-        title: tpl.title,
-        description: tpl.challenger,
-        category: CATEGORY_VALUES.includes(tpl.category) ? tpl.category : 'OTHER',
-        postType: 'CHALLENGE',
-        sideALabel: tpl.sideALabel,
-        sideBLabel: tpl.sideBLabel,
-      },
-    });
-
-    // Most challenges get an opponent quickly so the feed shows live VS battles.
-    if (Math.random() < 0.65) {
-      const opponents = await getRandomBots(4);
-      const opponent = opponents.find((b) => b.id !== challenger.id);
-      if (opponent) {
-        await prisma.case.update({
-          where: { id: newCase.id },
-          data: { opponentId: opponent.id, opponentStatement: tpl.opponent, challengeAcceptedAt: new Date() },
-        });
-        // seed a little support on both sides
-        const supporters = (await getRandomBots(30)).filter((b) => b.id !== challenger.id && b.id !== opponent.id);
-        for (const s of supporters.slice(0, randIntLocal(3, 18))) {
-          try {
-            await prisma.vote.create({ data: { caseId: newCase.id, userId: s.id, side: Math.random() < 0.5 ? 'SIDE_A' : 'SIDE_B' } });
-          } catch { /* dup */ }
-        }
-      }
-    }
-
-    console.log(`✅ Bot ${challenger.username} started a CHALLENGE: "${tpl.title.substring(0, 45)}..."`);
-    return newCase;
-  } catch (error) {
-    console.error('❌ Error creating bot challenge:', error.message);
-    return null;
-  }
-}
-
-function randIntLocal(min, max) { return min + Math.floor(Math.random() * (max - min + 1)); }
-
 /** Bot votes on a random active JUDGE case (vent posts cannot be voted on). */
 async function botVoteOnCase() {
   try {
     const activeCases = await prisma.case.findMany({
-      where: { status: 'ACTIVE', postType: { in: ['JUDGE', 'CHALLENGE'] } },
+      where: { status: 'ACTIVE', postType: 'JUDGE' },
       take: 20,
       orderBy: { createdAt: 'desc' },
     });
 
     if (activeCases.length === 0) {
-      console.log('⚠️  No active votable cases');
+      console.log('⚠️  No active JUDGE cases to vote on');
       return null;
     }
 
@@ -454,12 +405,10 @@ async function runBotActivity() {
   // 25% comment, 15% vote on a comment.
   const activity = Math.random();
 
-  if (activity < 0.10) {
+  if (activity < 0.15) {
     await botCreateCase();
-  } else if (activity < 0.18) {
-    await botCreateChallenge();
-  } else if (activity < 0.42) {
-    await botVoteOnCase(); // supports JUDGE + CHALLENGE
+  } else if (activity < 0.40) {
+    await botVoteOnCase();
   } else if (activity < 0.60) {
     await botReactOnCase();
   } else if (activity < 0.85) {
@@ -483,7 +432,6 @@ async function runMultipleBotActivities(count = 3) {
 
 export {
   botCreateCase,
-  botCreateChallenge,
   botVoteOnCase,
   botReactOnCase,
   botCommentOnCase,
